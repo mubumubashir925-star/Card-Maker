@@ -2684,6 +2684,7 @@ Private Sub gcBuildUi()
     On Error Resume Next
     mf.ScrollBars = 2
     mf.ScrollHeight = gcFrameH(0)
+    mf.ScrollTop = 0
     On Error GoTo EH
     Set fMov = gcFindFrame("Move Object")
     Set fChg = gcFindFrame("Change Case")
@@ -4410,6 +4411,12 @@ End Sub
 Private Sub gcSetQrVisible()
     Dim c As Object
     If qrChildren Is Nothing Then Exit Sub
+    If qrExpanded Then
+        gcMf.ScrollHeight = gcFrameH(0)
+    Else
+        gcMf.ScrollHeight = 390
+        gcMf.ScrollTop = 0
+    End If
     For Each c In qrChildren
         c.Visible = (currentPage = 0 And qrExpanded)
     Next c
@@ -4438,6 +4445,7 @@ Private Sub gcChooseColor(ByVal slot As Long, ByVal foreground As Boolean)
         qrBackground(slot) = col
     End If
     gcCtl(slot, IIf(foreground, "FgBtn", "BgBtn")).BackColor = col
+    gcCtl(slot, IIf(foreground, "FgBtn", "BgBtn")).Caption = IIf(foreground, "FG #", "BG #") & UCase$(result)
 End Sub
 
 Private Function gcHexColor(ByVal col As Long) As String
