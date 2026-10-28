@@ -2600,7 +2600,7 @@ Private Sub gcBuildUi()
     Dim iconNames As String, miscNames As String, grpNames As Variant
     On Error GoTo EH
     gcUiReady = False
-    padG = 10: railW = 110: headH = 42: footH = 50
+    padG = 12: railW = 126: headH = 52: footH = 58
     Set mf = gcFindFrame("Card Maker")
     If mf Is Nothing Then Exit Sub
     Set gcMf = mf
@@ -2710,6 +2710,7 @@ Private Sub gcBuildUi()
     gcBuildChrome formW, formH, railW, headH, footH, padG
     gcRecolor
     gcStyleControls
+    gcPolishControls
     For i = 1 To 2
         qrForeground(i) = 0
         qrBackground(i) = &HFFFFFF
@@ -2754,13 +2755,13 @@ Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal ra
 
     ' header
     gcLbl "gcHdrBar", 0, 0, formW, headerH, "", GC_NAVY, GC_NAVY, 8, False, 1
-    gcLbl "gcHdrTitle", 12, 9, 90, 20, "Card Maker", &HFFFFFF, -1, 12, True, 1
-    gcLbl "gcHdrSub", 104, 13, formW - 104 - 90, 16, "CorelDRAW X7 | Production studio", GC_LIGHT, -1, 8, False, 1
+    gcLbl "gcHdrTitle", 14, 10, 125, 24, "CARD MAKER", &HFFFFFF, -1, 13, True, 1
+    gcLbl "gcHdrSub", 142, 16, formW - 142 - 94, 17, "ID CARD  /  BATCH STUDIO", GC_LIGHT, -1, 8, False, 1
     Set gcChip = gcLbl("gcChip", formW - 76, 9, 64, 18, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
 
     ' navigation rail
     gcLbl "gcRail", 0, headerH, railW, formH - headerH - footerH, "", GC_NAVY, GC_RAIL, 8, False, 1
-    caps = Array("Card Maker", "Arrange", "Text / Group", "More Tools", "About")
+    caps = Array("01  Create Cards", "02  Arrange", "03  Text / Group", "04  Tools", "05  About")
     For i = 1 To 5
         Set c = gcLbl("gcNav" & i, 0, headerH + 12 + (i - 1) * 38, railW, 36, vbCr & "   " & caps(i - 1), GC_NAVY, GC_RAIL, 9, False, 1)
         Select Case i
@@ -2776,11 +2777,11 @@ Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal ra
     footTop = formH - footerH
     gcLbl "gcFtBar", 0, footTop, formW, footerH, "", GC_NAVY, &HFFFFFF, 8, False, 1
     gcLbl "gcFtLine", 0, footTop, formW, 1, "", GC_NAVY, &HD1C9C2, 8, False, 1
-    Set goBtn = gcLbl("gcGo", padG, footTop + 9, 124, 30, vbCr & "Generate cards", &HFFFFFF, GC_TEAL, 10, True, 2)
-    tw = formW - padG - 136 - padG
-    Set gcTrack = gcLbl("gcPgTrack", padG + 136, footTop + 14, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
-    Set gcFill = gcLbl("gcPgFill", padG + 136, footTop + 14, 0.5, 8, "", GC_NAVY, GC_TEAL, 8, False, 1)
-    Set gcFtText = gcLbl("gcFtText", padG + 136, footTop + 27, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
+    Set goBtn = gcLbl("gcGo", padG, footTop + 10, 144, 34, vbCr & "GENERATE CARDS", &HFFFFFF, GC_TEAL, 10, True, 2)
+    tw = formW - padG - 156 - padG
+    Set gcTrack = gcLbl("gcPgTrack", padG + 156, footTop + 16, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
+    Set gcFill = gcLbl("gcPgFill", padG + 156, footTop + 16, 0.5, 8, "", GC_NAVY, GC_TEAL, 8, False, 1)
+    Set gcFtText = gcLbl("gcFtText", padG + 156, footTop + 30, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
 End Sub
 
 ' every default-grey frame / label / option button gets the white card colour
@@ -2816,6 +2817,18 @@ Private Sub nv5_Click()
     gcShowPage 4
 End Sub
 Private Sub goBtn_Click()
+    If gcBusy Then
+        MsgBox "A batch operation is already running.", vbInformation, "Card Maker"
+        Exit Sub
+    End If
+    If currentPage <> 0 Then
+        gcShowPage 0
+        Exit Sub
+    End If
+    If ActiveDocument Is Nothing Then
+        MsgBox "Open a CorelDRAW document with your ID-card template first.", vbExclamation, "Card Maker"
+        Exit Sub
+    End If
     createCards_Click
 End Sub
 
@@ -2830,6 +2843,9 @@ Private Sub gcShowPage(ByVal idx As Long)
     Next p
     gcMf.Visible = (idx <> 2)
     gcMf.Height = 360
+    On Error Resume Next
+    gcMf.ScrollTop = 0
+    On Error GoTo 0
     For Each c In gcTab(idx)
         c.Visible = True
     Next c
@@ -2839,6 +2855,9 @@ Private Sub gcShowPage(ByVal idx As Long)
         gcSetQrVisible
     End If
     qrExp.Visible = (idx = 0)
+    If Not goBtn Is Nothing Then
+        goBtn.Caption = IIf(idx = 0, vbCr & "GENERATE CARDS", vbCr & "GO TO CARD MAKER")
+    End If
     If idx = 4 Then gcNote "Card Maker - CorelDRAW production tools"
     For p = 0 To 4
         Set c = gcFindCtl("gcNav" & (p + 1))
@@ -2873,7 +2892,12 @@ Private Sub gcSetStatus(ByVal txt As String)
     If p > 0 And q > p Then
         a = Val(Mid$(txt, p + 5))
         b = Val(Mid$(txt, q + 4))
-        If b > 0 Then gcFill.Width = gcTrack.Width * a / b
+        If b > 0 Then
+            a = a / b
+            If a < 0 Then a = 0
+            If a > 1 Then a = 1
+            gcFill.Width = gcTrack.Width * a
+        End If
     End If
     gcFtText.Caption = txt & "   -   " & Format(Timer - gcT0, "0") & " s"
 End Sub
@@ -2882,6 +2906,7 @@ Private Sub gcIdle()
     If Not gcUiReady Then Exit Sub
     If gcBusy Then gcFtText.Caption = "Finished in " & Format(Timer - gcT0, "0") & " s"
     gcBusy = False
+    If Not gcFill Is Nothing Then gcFill.Width = 0.5
     gcChip.Caption = "Ready"
     gcChip.BackColor = GC_TEAL
 End Sub
@@ -4399,6 +4424,42 @@ Private Sub gcStyleControls()
     Next c
 End Sub
 
+' Apply a consistent styling layer without changing existing control names/events.
+Private Sub gcPolishControls()
+    Dim c As Object, tn As String
+    On Error Resume Next
+    For Each c In Me.Controls
+        If Left$(c.Name, 2) <> "gc" Then
+            tn = TypeName(c)
+            Select Case tn
+                Case "CommandButton"
+                    c.Font.Name = "Segoe UI"
+                    c.Font.Size = 9
+                    c.Font.Bold = True
+                    c.ForeColor = GC_NAVY
+                    c.BackColor = &HEDE9E3
+                    c.TakeFocusOnClick = False
+                Case "TextBox", "ComboBox", "ListBox"
+                    c.Font.Name = "Segoe UI"
+                    c.Font.Size = 9
+                    c.BackColor = &HFFFFFF
+                    c.ForeColor = GC_NAVY
+                Case "CheckBox", "OptionButton"
+                    c.Font.Name = "Segoe UI"
+                    c.Font.Size = 9
+                    c.ForeColor = GC_NAVY
+                Case "Frame"
+                    c.Font.Name = "Segoe UI"
+                    c.Font.Size = 9
+                    c.Font.Bold = True
+                    c.ForeColor = GC_NAVY
+                    c.BackColor = &HFFFFFF
+            End Select
+        End If
+    Next c
+    On Error GoTo 0
+End Sub
+
 Private Sub gcSetQrVisible()
     Dim c As Object
     If qrChildren Is Nothing Then Exit Sub
@@ -4459,6 +4520,6 @@ Private Sub UserForm_Initialize()
     Me.GrpMinY.value = ""
     Me.GrpMaxY.value = ""
     ' Initialize status label
-    gcSetStatus "Ready"
     gcBuildUi
+    gcNote "Ready - select your Excel data and template"
 End Sub
