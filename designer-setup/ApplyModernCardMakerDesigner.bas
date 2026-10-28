@@ -9,6 +9,7 @@ Public Sub ApplyModernCardMakerDesigner()
     Dim mainFrame As Object, batch As Object
     Dim iconNames As String, n As String, topY As Single, leftX As Single
     Dim baseW As Single, rightX As Single, i As Long, countMoved As Long
+    Dim fr As Object
     On Error GoTo Failed
     Set prj = Application.VBE.ActiveVBProject
     Set comp = prj.VBComponents("Card_Maker")
@@ -52,8 +53,21 @@ Public Sub ApplyModernCardMakerDesigner()
     Next c
     d.Width = 1050
     d.Height = 620
+    d.Caption = "Card Maker | Production Studio"
+    d.Font.Name = "Segoe UI"
+    d.Font.Size = 9
     d.BackColor = RGB(246, 249, 252)
-    MsgBox "Designer layout updated. Save and export Card_Maker.frm and Card_Maker.frx together." & vbCrLf & _
+    For Each fr In d.Controls
+        On Error Resume Next
+        fr.Font.Name = "Segoe UI"
+        fr.Font.Size = 9
+        If TypeName(fr) = "Frame" Then
+            fr.BackColor = RGB(255, 255, 255)
+            fr.ForeColor = RGB(30, 47, 74)
+        End If
+        On Error GoTo Failed
+    Next fr
+    MsgBox "Designer controls updated. Save and export Card_Maker.frm and Card_Maker.frx together." & vbCrLf & _
            "The runtime layout is handled by Card_Maker.frm. Check all control positions before using.", vbInformation
     Exit Sub
 Failed:
