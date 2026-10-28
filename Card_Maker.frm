@@ -2595,7 +2595,7 @@ Private Sub gcBuildUi()
     Dim i As Long, nm As String, vn As Variant
     Dim haveCards As Boolean
     Dim cl As Single, ct As Single, cr As Single, cb As Single, stageW As Single
-    Dim y As Single, toolX As Single, toolW As Single
+    Dim y As Single, toolX As Single, toolW As Single, toolBottom As Single
     Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
     Dim iconNames As String, miscNames As String, grpNames As Variant
     On Error GoTo EH
@@ -2651,10 +2651,10 @@ Private Sub gcBuildUi()
     ' Put image tools beside the data/image-position picker, not below it.
     toolX = cr + 16
     toolW = 116
-    gcPlaceImageTools fb, toolX, ct + 8, toolW
+    toolBottom = gcPlaceImageTools(fb, toolX, ct + 8, toolW)
     stageW = toolX + toolW - cl
     mf.Width = cl + stageW + padG
-    y = cb + 14
+    y = gcMax(cb, toolBottom) + 14
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
     qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 28
     qrExp.Caption = "   +   QR / Barcode (advanced)"
@@ -2663,7 +2663,7 @@ Private Sub gcBuildUi()
     y = y + 32
     gcBuildQrTab cl, y, stageW
     qrExpanded = False
-    gcFrameH(0) = y + gcQrBlockHeight() + 100
+    gcFrameH(0) = y + gcQrBlockHeight() + 32
     For i = 1 To 4
         gcFrameH(i) = gcFrameH(0)
     Next i
@@ -4494,21 +4494,24 @@ Private Sub gcUpdateToolPanels(ByVal tabIndex As Long)
 End Sub
 
 ' Image tools are a compact vertical toolbar beside the image picker.
-Private Sub gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVal topY As Single, ByVal w As Single)
+Private Function gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVal topY As Single, ByVal w As Single) As Single
     Dim c As Object, i As Long, names As Variant, caps As Variant
     names = Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
     caps = Array("FIT IMAGE", "STRETCH IMAGE", "FIT TEXT")
+    Dim nextY As Single
+    nextY = topY + 24
     If Not powerClip Is Nothing Then
         powerClip.Left = x
-        powerClip.Top = topY + 22
+        powerClip.Top = nextY
         powerClip.Width = w
+        nextY = nextY + powerClip.Height + 8
     End If
     Set c = gcNewImageHeading(x, topY, w)
     For i = 0 To 2
         Set c = gcFindCtl(CStr(names(i)))
         If Not c Is Nothing Then
             c.Left = x
-            c.Top = topY + 58 + i * 35
+            c.Top = nextY + i * 35
             c.Width = w
             c.Height = 29
             On Error Resume Next
@@ -4516,7 +4519,8 @@ Private Sub gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVa
             On Error GoTo 0
         End If
     Next i
-End Sub
+    gcPlaceImageTools = nextY + 3 * 35 + 6
+End Function
 
 Private Function gcNewImageHeading(ByVal x As Single, ByVal y As Single, ByVal w As Single) As Object
     Dim c As Object
