@@ -2598,6 +2598,7 @@ Private Sub gcBuildUi()
     Dim ix As Single, iy As Single, y As Single, iconH As Single
     Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
     Dim iconNames As String, miscNames As String, grpNames As Variant
+    Dim rightX As Single, rightW As Single, rightY As Single, rightBottom As Single
     On Error GoTo EH
     gcUiReady = False
     padG = 10: railW = 110: headH = 42: footH = 50
@@ -2645,37 +2646,41 @@ Private Sub gcBuildUi()
     stageW = cr - cl
     If stageW < 285 Then stageW = 285
     If Not fb Is Nothing Then If fb.Width > stageW Then stageW = fb.Width
-    mf.Width = cl + stageW + padG
+    rightX = cl + stageW + 16
+    rightW = 240
+    mf.Width = rightX + rightW + padG
     mf.Left = railW + padG: mf.Top = headH + padG
     mf.BackColor = &HFFFFFF
-    y = cb + 14
+    rightY = ct + 8
     If Not fb Is Nothing Then
-        fb.Left = cl: fb.Top = y
-        y = y + fb.Height + 10
+        fb.Left = rightX: fb.Top = rightY
+        rightY = rightY + fb.Height + 16
     End If
     If hasIcons Then
         For Each c In gcTab(0)
             If InStr(iconNames, "|" & c.Name & "|") > 0 Then
-                c.Left = c.Left - ix + cl
-                c.Top = c.Top - iy + y
-                If c.Top + c.Height > iconH Then iconH = c.Top + c.Height
+                c.Left = c.Left - ix + rightX
+                c.Top = c.Top - iy + rightY
+                If c.Top + c.Height > rightBottom Then rightBottom = c.Top + c.Height
             End If
         Next c
-        y = iconH + 12
     End If
+    ' The advanced QR area starts below the everyday two-column workspace.
+    y = cb + 18
+    If rightBottom + 12 > y Then y = rightBottom + 12
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
-    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 28
+    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW + rightW + 16: qrExp.Height = 28
     qrExp.Caption = "   +   QR / Barcode (advanced)"
     qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HEDE8E3
     qrExp.Font.Name = "Segoe UI": qrExp.Font.Size = 9: qrExp.Font.Bold = True
     y = y + 32
-    gcBuildQrTab cl, y, stageW
+    gcBuildQrTab cl, y, stageW + rightW + 16
     qrExpanded = False
-    gcFrameH(0) = y + gcQrBlockHeight() + 100
+    gcFrameH(0) = y + gcQrBlockHeight() + 45
     For i = 1 To 4
         gcFrameH(i) = gcFrameH(0)
     Next i
-    mf.Height = 360
+    mf.Height = 390
     On Error Resume Next
     mf.ScrollBars = 2
     mf.ScrollHeight = gcFrameH(0)
@@ -2703,7 +2708,7 @@ Private Sub gcBuildUi()
         If Not c Is Nothing Then gcTab(2).Add c
     Next vn
     formW = railW + padG + mf.Width + padG
-    formH = headH + padG + 360 + footH
+    formH = headH + padG + 390 + footH
     Me.Width = Me.Width - Me.InsideWidth + formW
     Me.Height = Me.Height - Me.InsideHeight + formH
     Me.BackColor = &HF8F7F5
@@ -2828,8 +2833,8 @@ Private Sub gcShowPage(ByVal idx As Long)
             Next c
         End If
     Next p
-    gcMf.Visible = (idx <> 2)
-    gcMf.Height = 360
+    gcMf.Visible = True
+    gcMf.Height = 390
     For Each c In gcTab(idx)
         c.Visible = True
     Next c
