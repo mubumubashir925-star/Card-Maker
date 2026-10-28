@@ -2711,6 +2711,7 @@ Private Sub gcBuildUi()
     gcRecolor
     gcStyleControls
     gcPolishControls
+    gcArrangeToolPanels
     For i = 1 To 2
         qrForeground(i) = 0
         qrBackground(i) = &HFFFFFF
@@ -2842,6 +2843,7 @@ Private Sub gcShowPage(ByVal idx As Long)
         End If
     Next p
     gcMf.Visible = (idx <> 2)
+    gcUpdateToolPanels idx
     gcMf.Height = 360
     On Error Resume Next
     gcMf.ScrollTop = 0
@@ -4457,6 +4459,44 @@ Private Sub gcPolishControls()
             End Select
         End If
     Next c
+    On Error GoTo 0
+End Sub
+
+' Keep tool frames within the workspace and preserve their original events.
+Private Sub gcArrangeToolPanels()
+    Dim c As Object, t As Single, workL As Single, workW As Single
+    Dim names As Variant, v As Variant
+    On Error Resume Next
+    workL = gcMf.Left
+    workW = gcMf.Width
+    t = gcMf.Top
+    names = Array("Move Object", "Change Case", "Group By Shape No.")
+    For Each v In names
+        Set c = gcFindFrame(CStr(v))
+        If Not c Is Nothing Then
+            c.Left = workL
+            If c.Width > workW Then c.Width = workW
+            If CStr(v) = "Move Object" Then
+                c.Top = gcMf.Top + 16
+            Else
+                c.Top = t
+                t = t + c.Height + 10
+            End If
+        End If
+    Next v
+    On Error GoTo 0
+End Sub
+
+' Tool sections are shown by tab; no controls are deleted or renamed.
+Private Sub gcUpdateToolPanels(ByVal tabIndex As Long)
+    Dim c As Object
+    On Error Resume Next
+    Set c = gcFindFrame("Move Object")
+    If Not c Is Nothing Then c.Visible = (tabIndex = 1)
+    Set c = gcFindFrame("Change Case")
+    If Not c Is Nothing Then c.Visible = (tabIndex = 2)
+    Set c = gcFindFrame("Group By Shape No.")
+    If Not c Is Nothing Then c.Visible = (tabIndex = 2)
     On Error GoTo 0
 End Sub
 
