@@ -2657,17 +2657,22 @@ Private Sub gcBuildUi()
         rightY = rightY + fb.Height + 16
     End If
     If hasIcons Then
+        Dim fitIndex As Long
+        fitIndex = 0
         For Each c In gcTab(0)
             If InStr(iconNames, "|" & c.Name & "|") > 0 Then
-                c.Left = c.Left - ix + rightX
-                c.Top = c.Top - iy + rightY
-                If c.Top + c.Height > rightBottom Then rightBottom = c.Top + c.Height
+                c.Left = rightX + fitIndex * 73
+                c.Top = rightY
+                c.Width = 66: c.Height = 40
+                fitIndex = fitIndex + 1
             End If
         Next c
+        rightBottom = rightY + 48
     End If
     ' The advanced QR area starts below the everyday two-column workspace.
     y = cb + 18
     If rightBottom + 12 > y Then y = rightBottom + 12
+    If y < 340 Then y = 340
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
     qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW + rightW + 16: qrExp.Height = 28
     qrExp.Caption = "   +   QR / Barcode (advanced)"
@@ -4413,8 +4418,10 @@ Private Sub gcSetQrVisible()
     If qrChildren Is Nothing Then Exit Sub
     If qrExpanded Then
         gcMf.ScrollHeight = gcFrameH(0)
+        gcMf.ScrollBars = 2
     Else
         gcMf.ScrollHeight = 390
+        gcMf.ScrollBars = 0
         gcMf.ScrollTop = 0
     End If
     For Each c In qrChildren
