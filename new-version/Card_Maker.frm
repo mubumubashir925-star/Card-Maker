@@ -2644,7 +2644,9 @@ Private Sub gcBuildUi()
             End If
         End If
     Next c
-    If Not haveCards Then Exit Sub
+    If Not haveCards Then
+        Err.Raise vbObjectError + 201, , "Card Maker frame has no visible field controls"
+    End If
     stageW = cr - cl
     If stageW < 285 Then stageW = 285
     If Not fb Is Nothing Then If fb.Width > stageW Then stageW = fb.Width
@@ -2774,7 +2776,7 @@ Private Function gcLbl(ByVal nm As String, ByVal l As Single, ByVal t As Single,
         c.BackStyle = 1
         c.BackColor = back
     End If
-    c.Font.Name = "Tahoma"
+    c.Font.Name = "Segoe UI"
     c.Font.Size = sz
     c.Font.Bold = bold
     c.TextAlign = algn
@@ -2862,7 +2864,7 @@ Private Sub gcShowPage(ByVal idx As Long)
             Next c
         End If
     Next p
-    gcMf.Visible = True
+    gcMf.Visible = (idx = 0)
     gcMf.Height = 390
     For Each c In gcTab(idx)
         c.Visible = True
@@ -2934,8 +2936,8 @@ Private Function gcNewCtl(ByVal progId As String, ByVal nm As String, ByVal l As
     Set c = gcMf.Controls.Add(progId, nm, True)
     c.Left = l: c.Top = t: c.Width = w: c.Height = hgt
     If cap <> "" Then c.Caption = cap
-    c.Font.Name = "Tahoma"
-    c.Font.Size = 8
+    c.Font.Name = "Segoe UI"
+    c.Font.Size = 9
     gcTab(0).Add c
     qrChildren.Add c
     Set gcNewCtl = c
