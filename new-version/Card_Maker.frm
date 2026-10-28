@@ -2599,6 +2599,7 @@ Private Sub gcBuildUi()
     Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
     Dim iconNames As String, miscNames As String, grpNames As Variant
     Dim rightX As Single, rightW As Single, rightY As Single, rightBottom As Single
+    Dim fitCaption As Object, fitLabels As Variant
     On Error GoTo EH
     gcUiReady = False
     padG = 10: railW = 110: headH = 42: footH = 50
@@ -2657,17 +2658,27 @@ Private Sub gcBuildUi()
         rightY = rightY + fb.Height + 16
     End If
     If hasIcons Then
+        fitLabels = Array("FIT IMAGE", "FIT TEXT", "STRETCH")
         Dim fitIndex As Long
         fitIndex = 0
         For Each c In gcTab(0)
             If InStr(iconNames, "|" & c.Name & "|") > 0 Then
                 c.Left = rightX + fitIndex * 73
-                c.Top = rightY
-                c.Width = 66: c.Height = 40
+                c.Top = rightY + 20
+                c.Width = 66: c.Height = 38
+                Set fitCaption = gcMf.Controls.Add("Forms.Label.1", "gcFitTitle" & CStr(fitIndex + 1), True)
+                fitCaption.Left = c.Left: fitCaption.Top = rightY
+                fitCaption.Width = 66: fitCaption.Height = 17
+                fitCaption.Caption = fitLabels(fitIndex)
+                fitCaption.TextAlign = 2
+                fitCaption.Font.Name = "Segoe UI": fitCaption.Font.Size = 8
+                fitCaption.Font.Bold = True: fitCaption.ForeColor = GC_NAVY
+                fitCaption.BackColor = &HFFFFFF
+                gcTab(0).Add fitCaption
                 fitIndex = fitIndex + 1
             End If
         Next c
-        rightBottom = rightY + 48
+        rightBottom = rightY + 66
     End If
     ' The advanced QR area starts below the everyday two-column workspace.
     y = cb + 18
@@ -2675,7 +2686,7 @@ Private Sub gcBuildUi()
     If y < 340 Then y = 340
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
     qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW + rightW + 16: qrExp.Height = 28
-    qrExp.Caption = "   +   QR / Barcode (advanced)"
+    qrExp.Caption = "   +   QR / BARCODE  |  Advanced settings"
     qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HEDE8E3
     qrExp.Font.Name = "Segoe UI": qrExp.Font.Size = 9: qrExp.Font.Bold = True
     y = y + 32
@@ -2765,8 +2776,8 @@ Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal ra
 
     ' header
     gcLbl "gcHdrBar", 0, 0, formW, headerH, "", GC_NAVY, GC_NAVY, 8, False, 1
-    gcLbl "gcHdrTitle", 12, 9, 90, 20, "Card Maker", &HFFFFFF, -1, 12, True, 1
-    gcLbl "gcHdrSub", 104, 13, formW - 104 - 90, 16, "CorelDRAW X7 | Production studio", GC_LIGHT, -1, 8, False, 1
+    gcLbl "gcHdrTitle", 12, 9, 150, 20, "CARD MAKER  /  PRO", &HFFFFFF, -1, 12, True, 1
+    gcLbl "gcHdrSub", 169, 13, formW - 169 - 90, 16, "CorelDRAW X7  |  Production workspace", GC_LIGHT, -1, 8, False, 1
     Set gcChip = gcLbl("gcChip", formW - 76, 9, 64, 18, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
 
     ' navigation rail
@@ -4428,7 +4439,7 @@ Private Sub gcSetQrVisible()
         c.Visible = (currentPage = 0 And qrExpanded)
     Next c
     If currentPage = 0 Then qrExp.Visible = True
-    qrExp.Caption = IIf(qrExpanded, "   -   QR / Barcode (hide settings)", "   +   QR / Barcode (advanced)")
+    qrExp.Caption = IIf(qrExpanded, "   -   QR / BARCODE  |  Hide settings", "   +   QR / BARCODE  |  Advanced settings")
 End Sub
 
 Private Sub qrExp_Click()
