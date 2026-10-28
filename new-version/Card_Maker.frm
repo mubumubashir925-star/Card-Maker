@@ -2599,7 +2599,8 @@ Private Sub gcBuildUi()
     Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
     Dim iconNames As String, miscNames As String, grpNames As Variant
     Dim rightX As Single, rightW As Single, rightY As Single, rightBottom As Single
-    Dim fitCaption As Object, fitLabels As Variant
+    Dim fitCaption As Object, fitLabels As Variant, fitControls(0 To 2) As Object
+    Dim fitCount As Long
     On Error GoTo EH
     gcUiReady = False
     padG = 10: railW = 110: headH = 42: footH = 50
@@ -2652,32 +2653,43 @@ Private Sub gcBuildUi()
     mf.Width = rightX + rightW + padG
     mf.Left = railW + padG: mf.Top = headH + padG
     mf.BackColor = &HFFFFFF
-    rightY = ct + 8
+    rightY = ct + 26
+    Set fitCaption = gcMf.Controls.Add("Forms.Label.1", "gcRightTitle", True)
+    fitCaption.Left = rightX: fitCaption.Top = ct + 3
+    fitCaption.Width = rightW: fitCaption.Height = 19
+    fitCaption.Caption = "IMAGE / POWERCLIP TOOLS"
+    fitCaption.Font.Name = "Segoe UI": fitCaption.Font.Size = 10
+    fitCaption.Font.Bold = True: fitCaption.ForeColor = GC_NAVY
+    fitCaption.BackColor = &HFFFFFF
+    gcTab(0).Add fitCaption
     If Not fb Is Nothing Then
         fb.Left = rightX: fb.Top = rightY
         rightY = rightY + fb.Height + 16
     End If
     If hasIcons Then
+        ' Snapshot the three legacy buttons BEFORE adding labels to the tab collection.
+        ' Mutating a VBA Collection while iterating it can skip controls.
+        Set fitControls(0) = gcFindCtl("FitImgtoPCframe")
+        Set fitControls(1) = gcFindCtl("FitTextToFrame")
+        Set fitControls(2) = gcFindCtl("Stretch_toFit")
         fitLabels = Array("FIT IMAGE", "FIT TEXT", "STRETCH")
-        Dim fitIndex As Long
-        fitIndex = 0
-        For Each c In gcTab(0)
-            If InStr(iconNames, "|" & c.Name & "|") > 0 Then
-                c.Left = rightX + fitIndex * 73
+        For i = 0 To 2
+            Set c = fitControls(i)
+            If Not c Is Nothing Then
+                c.Left = rightX + i * 73
                 c.Top = rightY + 20
                 c.Width = 66: c.Height = 38
-                Set fitCaption = gcMf.Controls.Add("Forms.Label.1", "gcFitTitle" & CStr(fitIndex + 1), True)
+                Set fitCaption = gcMf.Controls.Add("Forms.Label.1", "gcFitTitle" & CStr(i + 1), True)
                 fitCaption.Left = c.Left: fitCaption.Top = rightY
                 fitCaption.Width = 66: fitCaption.Height = 17
-                fitCaption.Caption = fitLabels(fitIndex)
+                fitCaption.Caption = fitLabels(i)
                 fitCaption.TextAlign = 2
                 fitCaption.Font.Name = "Segoe UI": fitCaption.Font.Size = 8
                 fitCaption.Font.Bold = True: fitCaption.ForeColor = GC_NAVY
                 fitCaption.BackColor = &HFFFFFF
                 gcTab(0).Add fitCaption
-                fitIndex = fitIndex + 1
             End If
-        Next c
+        Next i
         rightBottom = rightY + 66
     End If
     ' The advanced QR area starts below the everyday two-column workspace.
