@@ -4425,7 +4425,7 @@ End Sub
 
 ' Apply a consistent styling layer without changing existing control names/events.
 Private Sub gcPolishControls()
-    Dim c As Object, tn As String
+    Dim c As Object, tn As String, labelText As String
     On Error Resume Next
     For Each c In Me.Controls
         If Left$(c.Name, 2) <> "gc" Then
@@ -4435,23 +4435,32 @@ Private Sub gcPolishControls()
                     c.Font.Name = "Segoe UI"
                     c.Font.Size = 9
                     c.Font.Bold = True
-                    c.ForeColor = GC_NAVY
-                    c.BackColor = &HEDE9E3
+                    c.ForeColor = &H30251C
+                    c.BackColor = &HF3EEE8
                     c.TakeFocusOnClick = False
+                    c.ControlTipText = Trim$(c.Caption)
+                    labelText = LCase$(Trim$(c.Caption))
+                    If InStr(labelText, "delete") > 0 Or InStr(labelText, "clear") > 0 Or InStr(labelText, "remove") > 0 Then
+                        c.ForeColor = &HFFFFFF
+                        c.BackColor = &H4242AD
+                    ElseIf InStr(labelText, "generate") > 0 Or InStr(labelText, "create") > 0 Or InStr(labelText, "apply") > 0 Then
+                        c.ForeColor = &HFFFFFF
+                        c.BackColor = &H927527
+                    End If
                 Case "TextBox", "ComboBox", "ListBox"
                     c.Font.Name = "Segoe UI"
                     c.Font.Size = 9
                     c.BackColor = &HFFFFFF
-                    c.ForeColor = GC_NAVY
+                    c.ForeColor = &H30251C
                 Case "CheckBox", "OptionButton"
                     c.Font.Name = "Segoe UI"
                     c.Font.Size = 9
-                    c.ForeColor = GC_NAVY
+                    c.ForeColor = &H30251C
                 Case "Frame"
                     c.Font.Name = "Segoe UI"
                     c.Font.Size = 9
                     c.Font.Bold = True
-                    c.ForeColor = GC_NAVY
+                    c.ForeColor = &H30251C
                     c.BackColor = &HFFFFFF
             End Select
         End If
