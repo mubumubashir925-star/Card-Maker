@@ -39,9 +39,10 @@ Public Sub ApplyModernCardMakerDesigner()
         On Error GoTo Failed
         n = c.Name
         If InStr(iconNames, "|" & n & "|") > 0 Then
-            c.Left = rightX
-            c.Top = 180 + countMoved * 46
-            c.Width = 215
+            c.Left = rightX + countMoved * 73
+            c.Top = 180
+            c.Width = 66
+            c.Height = 40
             countMoved = countMoved + 1
         End If
         If TypeName(c) = "Frame" Then
@@ -67,7 +68,7 @@ Public Sub ApplyModernCardMakerDesigner()
         End If
         On Error GoTo Failed
     Next fr
-    MsgBox "Designer controls updated. Save and export Card_Maker.frm and Card_Maker.frx together." & vbCrLf & _
+    MsgBox "First-pass designer controls updated. Save and export Card_Maker.frm and Card_Maker.frx together." & vbCrLf & _
            "The runtime layout is handled by Card_Maker.frm. Check all control positions before using.", vbInformation
     Exit Sub
 Failed:
