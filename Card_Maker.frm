@@ -2663,7 +2663,11 @@ Private Sub gcBuildUi()
         Next c
         y = iconH + 12
     End If
-    Set qrExp = gcLbl("gcQrExpand", cl, y, stageW, 28, "   +   QR / Barcode (advanced)", GC_NAVY, &HEDE8E3, 9, True, 1)
+    Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
+    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 28
+    qrExp.Caption = "   +   QR / Barcode (advanced)"
+    qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HEDE8E3
+    qrExp.Font.Name = "Segoe UI": qrExp.Font.Size = 9: qrExp.Font.Bold = True
     y = y + 32
     gcBuildQrTab cl, y, stageW
     qrExpanded = False
@@ -2671,7 +2675,7 @@ Private Sub gcBuildUi()
     For i = 1 To 4
         gcFrameH(i) = gcFrameH(0)
     Next i
-    mf.Height = gcFrameH(0)
+    mf.Height = 360
     On Error Resume Next
     mf.ScrollBars = 2
     mf.ScrollHeight = gcFrameH(0)
@@ -2825,7 +2829,7 @@ Private Sub gcShowPage(ByVal idx As Long)
         End If
     Next p
     gcMf.Visible = (idx <> 2)
-    gcMf.Height = gcFrameH(idx)
+    gcMf.Height = 360
     For Each c In gcTab(idx)
         c.Visible = True
     Next c
@@ -2834,6 +2838,7 @@ Private Sub gcShowPage(ByVal idx As Long)
         gcSyncFields
         gcSetQrVisible
     End If
+    qrExp.Visible = (idx = 0)
     If idx = 4 Then gcNote "Card Maker - CorelDRAW production tools"
     For p = 0 To 4
         Set c = gcFindCtl("gcNav" & (p + 1))
