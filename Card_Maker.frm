@@ -2641,7 +2641,9 @@ Private Sub gcBuildUi()
             End If
         End If
     Next c
-    If Not haveCards Then Exit Sub
+    If Not haveCards Then
+        Err.Raise vbObjectError + 1201, "Card Maker", "No visible card controls found in the template frame."
+    End If
     stageW = cr - cl
     If stageW < 285 Then stageW = 285
 
@@ -2705,6 +2707,7 @@ Private Sub gcBuildUi()
     gcPolishControls
     gcStyleImageTools
     gcArrangeToolPanels
+    gcPolishNavigation
     For i = 1 To 2
         qrForeground(i) = 0
         qrBackground(i) = &HFFFFFF
@@ -4495,10 +4498,9 @@ End Sub
 
 ' Image tools are a compact vertical toolbar beside the image picker.
 Private Function gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVal topY As Single, ByVal w As Single) As Single
-    Dim c As Object, i As Long, names As Variant, caps As Variant
+    Dim c As Object, i As Long, names As Variant, caps As Variant, nextY As Single
     names = Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
     caps = Array("FIT IMAGE", "STRETCH IMAGE", "FIT TEXT")
-    Dim nextY As Single
     nextY = topY + 24
     If Not powerClip Is Nothing Then
         powerClip.Left = x
@@ -4547,6 +4549,23 @@ Private Sub gcStyleImageTools()
             c.ControlTipText = "Image and text production tool"
         End If
     Next v
+    On Error GoTo 0
+End Sub
+
+Private Sub gcPolishNavigation()
+    Dim c As Object, i As Long
+    On Error Resume Next
+    Me.Caption = "Card Maker | ID Production Studio"
+    For i = 1 To 5
+        Set c = gcFindCtl("gcNav" & i)
+        If Not c Is Nothing Then
+            c.Font.Name = "Segoe UI"
+            c.Font.Size = 9
+            c.ControlTipText = "Open " & Trim$(c.Caption)
+        End If
+    Next i
+    Set c = gcFindCtl("gcGo")
+    If Not c Is Nothing Then c.ControlTipText = "Generate ID cards from the active template"
     On Error GoTo 0
 End Sub
 
