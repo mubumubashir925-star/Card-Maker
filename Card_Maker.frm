@@ -2600,7 +2600,7 @@ Private Sub gcBuildUi()
     Dim iconNames As String, miscNames As String, grpNames As Variant
     On Error GoTo EH
     gcUiReady = False
-    padG = 12: railW = 126: headH = 52: footH = 58
+    padG = 14: railW = 142: headH = 58: footH = 64
     Set mf = gcFindFrame("Card Maker")
     If mf Is Nothing Then Exit Sub
     Set gcMf = mf
@@ -2651,18 +2651,18 @@ Private Sub gcBuildUi()
     mf.Left = railW + padG: mf.Top = headH + padG
     mf.BackColor = &HFFFFFF
     ' Put image tools beside the data/image-position picker, not below it.
-    toolX = cr + 16
-    toolW = 116
+    toolX = cr + 18
+    toolW = 138
     toolBottom = gcPlaceImageTools(fb, toolX, ct + 8, toolW)
     stageW = toolX + toolW - cl
     mf.Width = cl + stageW + padG
     y = gcMax(cb, toolBottom) + 14
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
-    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 28
+    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 32
     qrExp.Caption = "   +   QR / Barcode (advanced)"
-    qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HEDE8E3
+    qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HF1EAE3
     qrExp.Font.Name = "Segoe UI": qrExp.Font.Size = 9: qrExp.Font.Bold = True
-    y = y + 32
+    y = y + 38
     gcBuildQrTab cl, y, stageW
     qrExpanded = False
     gcFrameH(0) = y + gcQrBlockHeight() + 32
@@ -2708,6 +2708,7 @@ Private Sub gcBuildUi()
     gcStyleImageTools
     gcArrangeToolPanels
     gcPolishNavigation
+    gcStyleStudio
     For i = 1 To 2
         qrForeground(i) = 0
         qrBackground(i) = &HFFFFFF
@@ -2752,15 +2753,15 @@ Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal ra
 
     ' header
     gcLbl "gcHdrBar", 0, 0, formW, headerH, "", GC_NAVY, GC_NAVY, 8, False, 1
-    gcLbl "gcHdrTitle", 14, 10, 125, 24, "CARD MAKER", &HFFFFFF, -1, 13, True, 1
-    gcLbl "gcHdrSub", 142, 16, formW - 142 - 94, 17, "ID CARD  /  BATCH STUDIO", GC_LIGHT, -1, 8, False, 1
-    Set gcChip = gcLbl("gcChip", formW - 76, 9, 64, 18, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
+    gcLbl "gcHdrTitle", 16, 11, 140, 24, "CARD MAKER", &HFFFFFF, -1, 14, True, 1
+    gcLbl "gcHdrSub", 158, 18, formW - 158 - 100, 17, "ID PRODUCTION STUDIO", GC_LIGHT, -1, 8, False, 1
+    Set gcChip = gcLbl("gcChip", formW - 82, 14, 66, 20, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
 
     ' navigation rail
     gcLbl "gcRail", 0, headerH, railW, formH - headerH - footerH, "", GC_NAVY, GC_RAIL, 8, False, 1
-    caps = Array("01  Create Cards", "02  Arrange", "03  Text / Group", "04  Tools", "05  About")
+    caps = Array("01   CARD MAKER", "02   ARRANGE", "03   TEXT & GROUP", "04   MORE TOOLS", "05   ABOUT")
     For i = 1 To 5
-        Set c = gcLbl("gcNav" & i, 0, headerH + 12 + (i - 1) * 38, railW, 36, vbCr & "   " & caps(i - 1), GC_NAVY, GC_RAIL, 9, False, 1)
+        Set c = gcLbl("gcNav" & i, 0, headerH + 18 + (i - 1) * 44, railW, 40, vbCr & "   " & caps(i - 1), GC_NAVY, GC_RAIL, 9, False, 1)
         Select Case i
             Case 1: Set nv1 = c
             Case 2: Set nv2 = c
@@ -2774,11 +2775,11 @@ Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal ra
     footTop = formH - footerH
     gcLbl "gcFtBar", 0, footTop, formW, footerH, "", GC_NAVY, &HFFFFFF, 8, False, 1
     gcLbl "gcFtLine", 0, footTop, formW, 1, "", GC_NAVY, &HD1C9C2, 8, False, 1
-    Set goBtn = gcLbl("gcGo", padG, footTop + 10, 144, 34, vbCr & "GENERATE CARDS", &HFFFFFF, GC_TEAL, 10, True, 2)
-    tw = formW - padG - 156 - padG
-    Set gcTrack = gcLbl("gcPgTrack", padG + 156, footTop + 16, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
+    Set goBtn = gcLbl("gcGo", padG, footTop + 12, 152, 38, vbCr & "GENERATE CARDS", &HFFFFFF, GC_TEAL, 10, True, 2)
+    tw = formW - padG - 166 - padG
+    Set gcTrack = gcLbl("gcPgTrack", padG + 166, footTop + 19, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
     Set gcFill = gcLbl("gcPgFill", padG + 156, footTop + 16, 0.5, 8, "", GC_NAVY, GC_TEAL, 8, False, 1)
-    Set gcFtText = gcLbl("gcFtText", padG + 156, footTop + 30, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
+    Set gcFtText = gcLbl("gcFtText", padG + 166, footTop + 34, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
 End Sub
 
 ' every default-grey frame / label / option button gets the white card colour
@@ -4566,6 +4567,38 @@ Private Sub gcPolishNavigation()
     Next i
     Set c = gcFindCtl("gcGo")
     If Not c Is Nothing Then c.ControlTipText = "Generate ID cards from the active template"
+    On Error GoTo 0
+End Sub
+
+' Presentation-only finishing pass; no changes to generation handlers.
+Private Sub gcStyleStudio()
+    Dim c As Object, v As Variant
+    On Error Resume Next
+    For Each v In Array("gcHdrBar", "gcRail")
+        Set c = gcFindCtl(CStr(v))
+        If Not c Is Nothing Then c.BackColor = &H30251C
+    Next v
+    Set c = gcFindCtl("gcGo")
+    If Not c Is Nothing Then
+        c.BackColor = &H927527
+        c.ForeColor = &HFFFFFF
+        c.Font.Name = "Segoe UI"
+        c.Font.Bold = True
+    End If
+    Set c = gcFindCtl("gcImageToolsTitle")
+    If Not c Is Nothing Then
+        c.Font.Size = 10
+        c.ForeColor = &H30251C
+    End If
+    For Each v In Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
+        Set c = gcFindCtl(CStr(v))
+        If Not c Is Nothing Then
+            c.BackColor = &HF4EFE9
+            c.ForeColor = &H30251C
+            c.Font.Size = 9
+            c.Font.Bold = True
+        End If
+    Next v
     On Error GoTo 0
 End Sub
 
