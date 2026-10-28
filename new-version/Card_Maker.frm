@@ -4427,6 +4427,7 @@ Private Sub gcSetQrVisible()
     For Each c In qrChildren
         c.Visible = (currentPage = 0 And qrExpanded)
     Next c
+    If currentPage = 0 Then qrExp.Visible = True
     qrExp.Caption = IIf(qrExpanded, "   -   QR / Barcode (hide settings)", "   +   QR / Barcode (advanced)")
 End Sub
 
