@@ -20,7 +20,7 @@ Public Sub ApplyModernCardMakerDesigner()
     d.BackColor = RGB(246, 249, 252)
     d.Font.Name = "Segoe UI": d.Font.Size = 9
 
-    workspace.Caption = "  CARD DATA  /  FIELD MAPPING"
+    workspace.Caption = "Card Maker"  ' Runtime locates this frame by its exact caption.
     workspace.BackColor = RGB(255, 255, 255)
     workspace.ForeColor = RGB(31, 49, 77)
     workspace.Font.Name = "Segoe UI": workspace.Font.Size = 9
