@@ -2593,9 +2593,9 @@ End Function
 Private Sub gcBuildUi()
     Dim mf As Object, c As Object, fb As Object, fMov As Object, fChg As Object, fGrp As Object
     Dim i As Long, nm As String, vn As Variant
-    Dim haveCards As Boolean, hasIcons As Boolean
+    Dim haveCards As Boolean
     Dim cl As Single, ct As Single, cr As Single, cb As Single, stageW As Single
-    Dim ix As Single, iy As Single, y As Single, iconH As Single
+    Dim y As Single, toolX As Single, toolW As Single
     Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
     Dim iconNames As String, miscNames As String, grpNames As Variant
     On Error GoTo EH
@@ -2626,7 +2626,7 @@ Private Sub gcBuildUi()
                 gcTab(0).Add c
             ElseIf InStr(iconNames, "|" & nm & "|") > 0 Then
                 gcTab(0).Add c
-                If Not hasIcons Then ix = c.Left: iy = c.Top: hasIcons = True
+
             ElseIf c.Visible Then
                 gcTab(0).Add c
                 If Not haveCards Then
@@ -2644,25 +2644,17 @@ Private Sub gcBuildUi()
     If Not haveCards Then Exit Sub
     stageW = cr - cl
     If stageW < 285 Then stageW = 285
-    If Not fb Is Nothing Then If fb.Width > stageW Then stageW = fb.Width
+
     mf.Width = cl + stageW + padG
     mf.Left = railW + padG: mf.Top = headH + padG
     mf.BackColor = &HFFFFFF
+    ' Put image tools beside the data/image-position picker, not below it.
+    toolX = cr + 16
+    toolW = 116
+    gcPlaceImageTools fb, toolX, ct + 8, toolW
+    stageW = toolX + toolW - cl
+    mf.Width = cl + stageW + padG
     y = cb + 14
-    If Not fb Is Nothing Then
-        fb.Left = cl: fb.Top = y
-        y = y + fb.Height + 10
-    End If
-    If hasIcons Then
-        For Each c In gcTab(0)
-            If InStr(iconNames, "|" & c.Name & "|") > 0 Then
-                c.Left = c.Left - ix + cl
-                c.Top = c.Top - iy + y
-                If c.Top + c.Height > iconH Then iconH = c.Top + c.Height
-            End If
-        Next c
-        y = iconH + 12
-    End If
     Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
     qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 28
     qrExp.Caption = "   +   QR / Barcode (advanced)"
@@ -2711,6 +2703,7 @@ Private Sub gcBuildUi()
     gcRecolor
     gcStyleControls
     gcPolishControls
+    gcStyleImageTools
     gcArrangeToolPanels
     For i = 1 To 2
         qrForeground(i) = 0
@@ -4497,6 +4490,59 @@ Private Sub gcUpdateToolPanels(ByVal tabIndex As Long)
     If Not c Is Nothing Then c.Visible = (tabIndex = 2)
     Set c = gcFindFrame("Group By Shape No.")
     If Not c Is Nothing Then c.Visible = (tabIndex = 2)
+    On Error GoTo 0
+End Sub
+
+' Image tools are a compact vertical toolbar beside the image picker.
+Private Sub gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVal topY As Single, ByVal w As Single)
+    Dim c As Object, i As Long, names As Variant, caps As Variant
+    names = Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
+    caps = Array("FIT IMAGE", "STRETCH IMAGE", "FIT TEXT")
+    If Not powerClip Is Nothing Then
+        powerClip.Left = x
+        powerClip.Top = topY + 22
+        powerClip.Width = w
+    End If
+    Set c = gcNewImageHeading(x, topY, w)
+    For i = 0 To 2
+        Set c = gcFindCtl(CStr(names(i)))
+        If Not c Is Nothing Then
+            c.Left = x
+            c.Top = topY + 58 + i * 35
+            c.Width = w
+            c.Height = 29
+            On Error Resume Next
+            c.Caption = CStr(caps(i))
+            On Error GoTo 0
+        End If
+    Next i
+End Sub
+
+Private Function gcNewImageHeading(ByVal x As Single, ByVal y As Single, ByVal w As Single) As Object
+    Dim c As Object
+    Set c = gcMf.Controls.Add("Forms.Label.1", "gcImageToolsTitle", True)
+    c.Left = x: c.Top = y: c.Width = w: c.Height = 18
+    c.Caption = "IMAGE TOOLS"
+    c.Font.Name = "Segoe UI": c.Font.Size = 9: c.Font.Bold = True
+    c.ForeColor = GC_NAVY: c.BackStyle = 0
+    gcTab(0).Add c
+    Set gcNewImageHeading = c
+End Function
+
+Private Sub gcStyleImageTools()
+    Dim c As Object, v As Variant
+    On Error Resume Next
+    For Each v In Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
+        Set c = gcFindCtl(CStr(v))
+        If Not c Is Nothing Then
+            c.Font.Name = "Segoe UI"
+            c.Font.Size = 9
+            c.Font.Bold = True
+            c.BackColor = &HECE5DC
+            c.ForeColor = GC_NAVY
+            c.ControlTipText = "Image and text production tool"
+        End If
+    Next v
     On Error GoTo 0
 End Sub
 
