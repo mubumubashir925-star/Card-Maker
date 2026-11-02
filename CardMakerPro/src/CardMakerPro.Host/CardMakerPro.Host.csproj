@@ -1,0 +1,14 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <PropertyGroup>
+  <OutputType>Library</OutputType><TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+  <AssemblyName>CardMakerPro.Host</AssemblyName><RootNamespace>CardMakerPro.Host</RootNamespace>
+  <ProjectGuid>{6E137B58-76DA-4E65-88CE-0C96C09E3BA0}</ProjectGuid>
+ </PropertyGroup>
+ <ItemGroup>
+  <Reference Include="System"/><Reference Include="System.Core"/>
+  <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/><Reference Include="System.Windows.Forms"/><Reference Include="WindowsFormsIntegration"/>
+  <ProjectReference Include="..\CardMakerPro.UI\CardMakerPro.UI.csproj"><Project>{B1CCB63D-DA63-4C17-B42A-82107B3D12A1}</Project><Name>CardMakerPro.UI</Name></ProjectReference>
+  <Compile Include="DockerControl.cs"/><Compile Include="DockerRegistration.cs"/>
+ </ItemGroup>
+ <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>
