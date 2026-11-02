@@ -15,6 +15,12 @@ jobs:
       - name: Build WPF host
         shell: pwsh
         run: msbuild CardMakerPro/CardMakerPro.sln /p:Configuration=Release /p:Platform="Any CPU" /v:minimal
+      - name: Verify compiled host DLL
+        shell: pwsh
+        run: |
+          $dll = "CardMakerPro/src/CardMakerPro.Host/bin/Release/CardMakerPro.Host.dll"
+          if (-not (Test-Path $dll)) { throw "Host DLL missing: $dll" }
+          Write-Host "Compiled host: $dll"
       - name: Upload DLL artifacts
         uses: actions/upload-artifact@v4
         with:
