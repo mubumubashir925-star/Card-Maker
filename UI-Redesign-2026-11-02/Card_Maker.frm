@@ -3126,8 +3126,24 @@ Private Sub gcSkinButtons()
                 o.Font.Size = 8
                 o.Font.Bold = True
                 o.WordWrap = False
-                ' Embedded original MSForms command-button resources stay in FRX.
-                ' No per-PC Documents icon directory or external LoadPicture.
+                ' Reuse pictures already embedded in the original FRX controls.
+                ' MSForms IPictureDisp assignment needs no external files.
+                On Error Resume Next
+                If Not b.Picture Is Nothing Then
+                    Set o.Picture = b.Picture
+                    If Err.Number = 0 Then
+                        o.PicturePosition = 0
+                        o.PictureSizeMode = 0
+                        Select Case b.Name
+                            Case "ErrorHandleRefresh", "ResetCardMaker", "GetBitmapNoPC", "GetShapeNoPC"
+                                o.Caption = ""
+                            Case Else
+                                o.PicturePosition = 1
+                        End Select
+                    End If
+                End If
+                Err.Clear
+                On Error GoTo 0
                 o.SpecialEffect = 0
                 o.BorderStyle = 0
                 o.BackStyle = 1
