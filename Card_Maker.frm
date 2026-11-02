@@ -811,7 +811,7 @@ Private Sub DeleteDatainEveryPage_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -1235,7 +1235,7 @@ Private Sub Stretch_toFit_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -3109,12 +3109,23 @@ Private Sub gcSkinButtons()
                 Set o = par.Controls.Add("Forms.Label.1", "gcSk" & i, True)
                 o.Left = b.Left: o.Top = b.Top: o.Width = b.Width: o.Height = b.Height
                 cap = CStr(parts(1))
-                If b.Height >= 22 Then cap = vbCr & cap
+                ' Reliable Windows 7 text labels; no tiny/missing Unicode glyphs.
+                ' Reserve compact icon-only controls for future bitmap assets.
+                Select Case b.Name
+                    Case "CSV_Select": cap = "OPEN TXT"
+                    Case "ErrorHandleRefresh": cap = "REFRESH"
+                    Case "CreateTextFields": cap = "TEXT FIELDS"
+                    Case "ResetCardMaker": cap = "RESET"
+                    Case "PasteInEachPage": cap = "PASTE ALL"
+                    Case "GetBitmapNoPC": cap = "IMG"
+                    Case "GetShapeNoPC": cap = "FRAME"
+                End Select
                 o.Caption = cap
                 o.TextAlign = 2
                 o.Font.Name = "Tahoma"
                 o.Font.Size = 8
                 o.Font.Bold = True
+                o.WordWrap = False
                 o.BorderStyle = 0
                 o.BackStyle = 1
                 Select Case CStr(parts(2))
@@ -3124,7 +3135,16 @@ Private Sub gcSkinButtons()
                     Case Else: o.BackColor = GC_TEAL_LT: o.ForeColor = GC_TEAL
                 End Select
                 On Error Resume Next
-                o.ControlTipText = b.ControlTipText
+                Select Case b.Name
+                    Case "CSV_Select": o.ControlTipText = "Open TXT data file"
+                    Case "ErrorHandleRefresh": o.ControlTipText = "Refresh CorelDRAW state"
+                    Case "CreateTextFields": o.ControlTipText = "Insert data fields into CorelDRAW"
+                    Case "ResetCardMaker": o.ControlTipText = "Reset Card Maker fields"
+                    Case "PasteInEachPage": o.ControlTipText = "Paste in all pages"
+                    Case "GetBitmapNoPC": o.ControlTipText = "Pick image from selection"
+                    Case "GetShapeNoPC": o.ControlTipText = "Pick PowerClip frame from selection"
+                    Case Else: o.ControlTipText = b.ControlTipText
+                End Select
                 On Error GoTo 0
                 gcSkinTarget(i) = b.Name
                 pg = gcPageOfName(b.Name)
@@ -3941,7 +3961,7 @@ Private Sub FitImgtoPCframe_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -4149,7 +4169,7 @@ Private Sub GetBitmapNoPC_Click()
             End If
         Next bitmapOrder
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a image and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a image and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4260,7 +4280,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderT
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4287,7 +4307,7 @@ Private Sub GetShapeNoPC_Click()
             End If
         Next shapeOrder
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4313,7 +4333,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderMFB
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4699,7 +4719,7 @@ Private Sub RotateObj_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
