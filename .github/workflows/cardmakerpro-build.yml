@@ -31,12 +31,10 @@ jobs:
       - name: Install Inno Setup compiler
         shell: pwsh
         run: |
-          $url = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
-          $file = Join-Path $env:RUNNER_TEMP "innosetup-6.2.2.exe"
-          Invoke-WebRequest -Uri $url -OutFile $file
-          Start-Process -FilePath $file -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          choco install innosetup --version=6.2.2 -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "Chocolatey could not install Inno Setup 6.2.2" }
           $compiler = "${env:ProgramFiles(x86)}\\Inno Setup 6\\ISCC.exe"
-          if (-not (Test-Path $compiler)) { throw "Inno Setup 6.2.2 compiler not found" }
+          if (-not (Test-Path $compiler)) { throw "Inno Setup compiler not found: $compiler" }
       - name: Build preview setup EXE
         shell: pwsh
         run: |
