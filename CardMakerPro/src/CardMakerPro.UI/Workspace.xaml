@@ -38,6 +38,7 @@
     <Button x:Name="CodesNav" Content="QR / Barcode" Click="Navigate_Click" Tag="QR / Barcode"/>
     <Button x:Name="ArrangeNav" Content="Arrange" Click="Navigate_Click" Tag="Arrange"/>
     <Button x:Name="SettingsNav" Content="Settings" Click="Navigate_Click" Tag="Settings"/>
+    <Button Content="Check for Updates" Click="CheckUpdates_Click" Margin="0,18,8,8"/>
    </StackPanel>
   </Border>
   <Grid Grid.Column="1" Margin="22,18,20,16">
