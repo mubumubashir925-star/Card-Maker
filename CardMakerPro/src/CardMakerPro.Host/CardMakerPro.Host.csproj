@@ -6,7 +6,7 @@
  </PropertyGroup>
  <ItemGroup>
   <Reference Include="System"/><Reference Include="System.Core"/>
-  <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/><Reference Include="System.Windows.Forms"/><Reference Include="WindowsFormsIntegration"/>
+  <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/><Reference Include="System.Windows.Forms"/><Reference Include="System.Xaml"/><Reference Include="WindowsFormsIntegration"/>
   <ProjectReference Include="..\CardMakerPro.UI\CardMakerPro.UI.csproj"><Project>{B1CCB63D-DA63-4C17-B42A-82107B3D12A1}</Project><Name>CardMakerPro.UI</Name></ProjectReference>
   <Compile Include="DockerControl.cs"/><Compile Include="DockerRegistration.cs"/>
  </ItemGroup>
