@@ -21,6 +21,29 @@ jobs:
           $dll = "CardMakerPro/src/CardMakerPro.Host/bin/Release/CardMakerPro.Host.dll"
           if (-not (Test-Path $dll)) { throw "Host DLL missing: $dll" }
           Write-Host "Compiled host: $dll"
+      - name: Stage preview installer files
+        shell: pwsh
+        run: |
+          $stage = "CardMakerPro/installer/staging"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "CardMakerPro/src/CardMakerPro.Host/bin/Release/CardMakerPro.Host.dll" $stage
+          Copy-Item "CardMakerPro/src/CardMakerPro.UI/bin/Release/CardMakerPro.UI.dll" $stage
+      - name: Install Inno Setup compiler
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+      - name: Build preview setup EXE
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\\Inno Setup 6\\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found: $iscc" }
+          & $iscc "CardMakerPro/installer/CardMakerPro.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+      - name: Upload preview installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CardMakerPro-Preview-Installer
+          path: CardMakerPro/installer/output/CardMakerPro-Preview-Setup.exe
+          if-no-files-found: error
       - name: Upload DLL artifacts
         uses: actions/upload-artifact@v4
         with:
