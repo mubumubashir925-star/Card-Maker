@@ -23,7 +23,7 @@ Private Const GC_FONT As String = "Arial"     ' font of the human-readable text
 Private Const GC_QR_ECC As Long = 1           ' QR error correction: 0=L  1=M  2=Q  3=H
 Private Const GC_QR_QUIET As Long = 4         ' empty border around QR (in modules)
 Private Const GC_C128_QUIET As Long = 10      ' empty border left/right of Code 128 (in modules)
-Private Const GC_WHITE_BG As Boolean = True   ' opaque background
+Private Const GC_WHITE_BG As Boolean = True   ' draw a white box behind the code
 Private Const GC_FAST_PAGES As Boolean = False ' True = experimental faster page copying (test first!)
 
 Private qrSize As Long
@@ -31,17 +31,30 @@ Private qrMod(0 To 96, 0 To 96) As Boolean
 Private qrFn(0 To 96, 0 To 96) As Boolean
 Private Const GC_NAVY As Long = &H442A1F      ' header / text colour
 Private Const GC_TEAL As Long = &H8F8F0E      ' accent colour (buttons, active page)
-Private Const GC_RAIL As Long = &HF0E9E4      ' navigation rail
+Private Const GC_TEAL_LT As Long = &HF0EED9   ' light accent (small helper buttons)
+Private Const GC_RED As Long = &H3030B8       ' delete button
+Private Const GC_RAIL As Long = &HF0E9E4      ' navigation rail / bars
 Private Const GC_LIGHT As Long = &HD1B39F     ' light text on the header
 Private Const GC_MUTED As Long = &H82685A     ' grey status text
 
 Private gcSkip(1 To 2) As String
 Private gcLastError As String
 Private gcFields As Collection
-Private gcTab(0 To 4) As Collection           ' pages: Cards, Arrange, Text/Group, Extra
+Private gcTab(0 To 3) As Collection           ' lists: 0 Cards, 1 QR panels, 2 Arrange, 3 Text / Group
 Private gcUiReady As Boolean
 Private gcMf As Object                        ' the main frame
-Private gcFrameH(0 To 4) As Single            ' frame height on each page
+Private gcPage As Long
+Private gcQrOpen As Boolean
+Private gcPad As Single
+Private gcRailW As Single
+Private gcHeaderH As Single
+Private gcFooterH As Single
+Private gcFormW As Single
+Private gcQrTop As Single
+Private gcBaseH As Single                     ' height of the content area on a normal page
+Private gcCardsH As Single
+Private gcCardsFullH As Single                ' ... with the QR strip open
+Private gcArrFrameH As Single
 Private gcGeo(1 To 2, 1 To 4) As Double       ' QR position: centre X, centre Y, width, height (inches)
 Private gcGeoOk(1 To 2) As Boolean            ' True when Position was set
 Private gcBusy As Boolean
@@ -49,29 +62,47 @@ Private gcT0 As Double
 Private gcFill As Object
 Private gcTrack As Object
 Private gcFtText As Object
+Private gcFtBar As Object
+Private gcFtLine As Object
 Private gcChip As Object
+Private gcRailBg As Object
+Private gcQrHdr As Object
+Private gcSkinTarget(1 To 24) As String
 Private SelectedShapeIndices As Collection    ' used by Capture / Group (Text / Group page)
 Private SourcePage As Page
 Private WithEvents nv1 As MSForms.Label
 Private WithEvents nv2 As MSForms.Label
 Private WithEvents nv3 As MSForms.Label
-Private WithEvents nv4 As MSForms.Label
-Private WithEvents nv5 As MSForms.Label
 Private WithEvents goBtn As MSForms.Label
-Private WithEvents qrExp As MSForms.Label
-Private WithEvents fgBtn1 As MSForms.CommandButton
-Private WithEvents bgBtn1 As MSForms.CommandButton
-Private WithEvents fgBtn2 As MSForms.CommandButton
-Private WithEvents bgBtn2 As MSForms.CommandButton
-Private qrExpanded As Boolean
-Private qrChildren As Collection
-Private qrForeground(1 To 2) As Long
-Private qrBackground(1 To 2) As Long
-Private currentPage As Long
+Private WithEvents qrToggle As MSForms.Label
 Private WithEvents d1Add As MSForms.CommandButton
 Private WithEvents d1Pos As MSForms.CommandButton
 Private WithEvents d2Add As MSForms.CommandButton
 Private WithEvents d2Pos As MSForms.CommandButton
+Private WithEvents sk1 As MSForms.Label
+Private WithEvents sk2 As MSForms.Label
+Private WithEvents sk3 As MSForms.Label
+Private WithEvents sk4 As MSForms.Label
+Private WithEvents sk5 As MSForms.Label
+Private WithEvents sk6 As MSForms.Label
+Private WithEvents sk7 As MSForms.Label
+Private WithEvents sk8 As MSForms.Label
+Private WithEvents sk9 As MSForms.Label
+Private WithEvents sk10 As MSForms.Label
+Private WithEvents sk11 As MSForms.Label
+Private WithEvents sk12 As MSForms.Label
+Private WithEvents sk13 As MSForms.Label
+Private WithEvents sk14 As MSForms.Label
+Private WithEvents sk15 As MSForms.Label
+Private WithEvents sk16 As MSForms.Label
+Private WithEvents sk17 As MSForms.Label
+Private WithEvents sk18 As MSForms.Label
+Private WithEvents sk19 As MSForms.Label
+Private WithEvents sk20 As MSForms.Label
+Private WithEvents sk21 As MSForms.Label
+Private WithEvents sk22 As MSForms.Label
+Private WithEvents sk23 As MSForms.Label
+Private WithEvents sk24 As MSForms.Label
 
 
 
@@ -773,7 +804,7 @@ Private Sub DeleteDatainEveryPage_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -1197,7 +1228,7 @@ Private Sub Stretch_toFit_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -1378,12 +1409,15 @@ Private Sub createCards_Click()
         End If
     Next gcS
     Dim gcOn(1 To 2) As Boolean, gcTpl(1 To 2) As String, gcTyp(1 To 2) As String, gcTxt(1 To 2) As Boolean
+    Dim gcFgI(1 To 2) As Long, gcBgI(1 To 2) As Long
     For gcS = 1 To 2
         gcOn(gcS) = gcIsOn(gcS)
         If gcOn(gcS) Then
             gcTpl(gcS) = gcCtl(gcS, "Col").Value
             gcTyp(gcS) = gcCtl(gcS, "Type").Value
             gcTxt(gcS) = CBool(gcCtl(gcS, "Text").Value)
+            gcFgI(gcS) = gcCtl(gcS, "FgC").ListIndex + 1
+            gcBgI(gcS) = gcCtl(gcS, "BgC").ListIndex + 1
         End If
     Next gcS
     'Check duplicate placeholders in design
@@ -1682,7 +1716,7 @@ Private Sub createCards_Click()
                     gcDone = False
                     If Trim$(gcVal) <> "" Then
                         gcDone = gcAddCode(gcVal, gcTyp(gcS), gcGeo(gcS, 1), gcGeo(gcS, 2), gcGeo(gcS, 3), gcGeo(gcS, 4), _
-                                           gcTxt(gcS), "GeneratedCode" & gcS, gcS)
+                                           gcTxt(gcS), "GeneratedCode" & gcS, gcFgI(gcS), gcBgI(gcS))
                     End If
                     If Not gcDone Then gcSkip(gcS) = gcSkip(gcS) & (LineNum - 1) & ", "
                 End If
@@ -2422,15 +2456,11 @@ Private Sub gcAddRect(ByVal crv As Curve, ByVal x1 As Double, ByVal y1 As Double
     sp.Closed = True
 End Sub
 
-' cmykK: 100 = black, 0 = white
-Private Function gcMakeShape(ByVal crv As Curve, ByVal cmykK As Long, Optional ByVal rgbCol As Long = -1) As Shape
+' col: fill colour of the shape
+Private Function gcMakeShape(ByVal crv As Curve, ByVal col As Color) As Shape
     Dim s As Shape
     Set s = ActiveLayer.CreateCurve(crv)
-    If rgbCol = -1 Then
-        s.Fill.ApplyUniformFill CreateCMYKColor(0, 0, 0, cmykK)
-    Else
-        s.Fill.ApplyUniformFill CreateRGBColor(rgbCol And 255, (rgbCol \ 256) And 255, (rgbCol \ 65536) And 255)
-    End If
+    s.Fill.ApplyUniformFill col
     s.Outline.SetNoOutline
     Set gcMakeShape = s
 End Function
@@ -2439,7 +2469,8 @@ End Function
 Private Function gcAddCode(ByVal value As String, ByVal codeType As String, _
                            ByVal cx As Double, ByVal cy As Double, _
                            ByVal regW As Double, ByVal regH As Double, _
-                           ByVal showText As Boolean, ByVal grpName As String, Optional ByVal slot As Long = 1) As Boolean
+                           ByVal showText As Boolean, ByVal grpName As String, _
+                           ByVal fgIdx As Long, ByVal bgIdx As Long) As Boolean
     Dim oldUnit As cdrUnit
     Dim crvBg As Curve, crvBars As Curve
     Dim shpBg As Shape, shpBars As Shape, shpTxt As Shape, grp As Shape
@@ -2504,21 +2535,21 @@ Private Function gcAddCode(ByVal value As String, ByVal codeType As String, _
         Next y
     End If
 
-    If GC_WHITE_BG Then
+    If bgIdx <> 2 Then                       ' 2 = no background
         Set crvBg = CreateCurve(ActiveDocument)
         gcAddRect crvBg, 0, 0, boxW, boxH
-        Set shpBg = gcMakeShape(crvBg, 0, qrBackground(slot))
+        Set shpBg = gcMakeShape(crvBg, gcBgColor(bgIdx))
         sr.Add shpBg
     End If
 
-    Set shpBars = gcMakeShape(crvBars, 100, qrForeground(slot))
+    Set shpBars = gcMakeShape(crvBars, gcFgColor(fgIdx))
     sr.Add shpBars
 
     If showText Then
         fs = textH * 72 * 0.75
         If fs < 4 Then fs = 4
         Set shpTxt = ActiveLayer.CreateArtisticText(0, 0, Replace(Replace(value, Chr$(13), " "), Chr$(10), " "), , , GC_FONT, fs)
-        shpTxt.Text.Story.Fill.ApplyUniformFill CreateRGBColor(qrForeground(slot) And 255, (qrForeground(slot) \ 256) And 255, (qrForeground(slot) \ 65536) And 255)
+        shpTxt.Text.Story.Fill.ApplyUniformFill gcFgColor(fgIdx)
         If shpTxt.SizeWidth > (boxW * 0.96) Then
             shpTxt.SetSize boxW * 0.96, shpTxt.SizeHeight * (boxW * 0.96) / shpTxt.SizeWidth
         End If
@@ -2585,145 +2616,348 @@ Private Function gcCap(ByVal c As Object) As String
     If TypeName(c) = "Frame" Then gcCap = c.Caption
 End Function
 
-'---------------------------------------------------------------------
-' Modern window: header, left navigation rail, one page at a time, footer.
-'   Cards | QR / Barcode | PowerClip | Arrange | Text / Group
-' The controls of the old designer are only moved and shown/hidden here.
-'---------------------------------------------------------------------
+
+'=====================================================================
+'  WINDOW (header, navigation rail, pages, footer) - built by code
+'=====================================================================
 Private Sub gcBuildUi()
-    Dim mf As Object, c As Object, fb As Object, fMov As Object, fChg As Object, fGrp As Object
-    Dim i As Long, nm As String, vn As Variant
-    Dim haveCards As Boolean
-    Dim cl As Single, ct As Single, cr As Single, cb As Single, stageW As Single
-    Dim y As Single, toolX As Single, toolW As Single, toolBottom As Single
-    Dim formW As Single, formH As Single, railW As Single, padG As Single, headH As Single, footH As Single
-    Dim iconNames As String, miscNames As String, grpNames As Variant
+    Dim mf As Object, c As Object, vn As Variant, fp As Object, dl As Object, lb As Object
+    Dim fb As Object, fBS As Object, fRS As Object, fGR As Object, fChg As Object, fMov As Object, fGby As Object
+    Dim i As Long, j As Long, k As Long, nm As String
+    Dim grpNames(0 To 3) As Variant
+    Dim gTop(0 To 3) As Single, gLeft(0 To 3) As Single, gW(0 To 3) As Single, gH(0 To 3) As Single, order(0 To 3) As Long, tmp As Long
+    Dim haveG As Boolean
+    Dim cl As Single, ct As Single, LW As Single, RW As Single, rowH As Single, listH As Single, y As Single, y2 As Single
+    Dim batchW As Single, batchH As Single, leftBottom As Single, rightBottom As Single
+    Dim bsW As Single, bsH As Single, rsW As Single, rsH As Single, grW As Single, grH As Single
+    Dim chgW As Single, chgH As Single, movW As Single, movH As Single, gbW As Single, gbH As Single
+    Dim gl As Single, gt As Single, gr As Single, gb As Single, grpW As Single, grpH As Single, haveGrp As Boolean
+    Dim stageW As Single, qrW As Single, cardsH As Single, arrRow1H As Single, textH As Single, x As Single
+    Dim formW As Single, g As Variant, minL As Single, minT As Single, maxR As Single, maxB As Single, m As Variant, first As Boolean
+
     On Error GoTo EH
     gcUiReady = False
-    padG = 14: railW = 142: headH = 58: footH = 64
+    gcPad = 8: gcRailW = 96: gcHeaderH = 36: gcFooterH = 48
+    cl = 10: ct = 10
+
     Set mf = gcFindFrame("Card Maker")
-    If mf Is Nothing Then Exit Sub
+    If mf Is Nothing Then Exit Sub                 ' main frame not found: keep the old window
     Set gcMf = mf
-    mf.Caption = "": mf.BorderStyle = 0
-    Set qrChildren = New Collection
-    For i = 0 To 4
+    mf.Caption = ""
+    mf.BorderStyle = 0
+    mf.BackColor = &HFFFFFF
+
+    For i = 0 To 3
         Set gcTab(i) = New Collection
     Next i
-    iconNames = "|FitImgtoPCframe|FitTextToFrame|Stretch_toFit|"
-    miscNames = "|PasteInEachPage|UngrpAll|Grouping|RotateObj|DeleteDatainEveryPage|"
-    grpNames = Array("GrpMinX", "GrpMaxX", "GrpMinY", "GrpMaxY", "GrpGetBoundingBox", "GrpCmdGroupShapes")
-    For Each c In Me.Controls
-        If gcChildOf(c, mf.Name) Then
-            nm = c.Name
-            If nm = "createCards" Or nm = "Status" Then
-                c.Visible = False
-            ElseIf InStr(miscNames, "|" & nm & "|") > 0 Then
-                gcTab(3).Add c
-            ElseIf gcCap(c) = "Bring/Send" Or gcCap(c) = "Resize" Then
-                gcTab(1).Add c
-            ElseIf gcCap(c) = "Batch PowerClip" Then
-                Set fb = c
-                gcTab(0).Add c
-            ElseIf InStr(iconNames, "|" & nm & "|") > 0 Then
-                gcTab(0).Add c
 
-            ElseIf c.Visible Then
-                gcTab(0).Add c
-                If Not haveCards Then
-                    cl = c.Left: ct = c.Top: cr = c.Left + c.Width: cb = c.Top + c.Height
-                    haveCards = True
-                Else
-                    If c.Left < cl Then cl = c.Left
-                    If c.Top < ct Then ct = c.Top
-                    If c.Left + c.Width > cr Then cr = c.Left + c.Width
-                    If c.Top + c.Height > cb Then cb = c.Top + c.Height
+    '---- frames we need -----------------------------------------------------------------------
+    Set fb = gcFindFrame("Batch PowerClip")
+    Set fBS = gcFindFrame("Bring/Send")
+    Set fRS = gcFindFrame("Resize")
+    Set fGR = gcFindFrame("Grouping")
+    Set fChg = gcFindFrame("Change Case")
+    Set fMov = gcFindFrame("Move Object")
+    Set fGby = gcFindFrame("Group By Shape No.")
+
+    '---- logo and its friends are not used any more -------------------------------------------
+    For Each vn In Array("Image1", "Image2", "createCards")
+        Set c = gcFindCtl(CStr(vn))
+        If Not c Is Nothing Then c.Visible = False
+    Next vn
+    Set c = gcFindCtl("Status")
+    If Not c Is Nothing Then c.Left = -3000                       ' old banner: the footer shows the status now
+
+    '---- measure the four image rows (kept as they are, only moved) -------------------------------
+    grpNames(0) = Array("ImgMove", "ipX", "ipY", "imgCheck", "iwth", "ihth", "iWch", "iHch", "ImgList", "GetPositnIDMaker1")
+    grpNames(1) = Array("ImgMove1", "ipX1", "ipY1", "imgCheck1", "iwth1", "ihth1", "iWch1", "iHch1", "ImgList1", "GetPositnIDMaker2")
+    grpNames(2) = Array("ImgMove2", "ipX2", "ipY2", "imgCheck2", "iwth2", "ihth2", "iWch2", "iHch2", "ImgList2", "GetPosionIdMaker4")
+    grpNames(3) = Array("BarcodeMove", "bcX", "bcY", "bcCheck", "bwth", "bhth", "bHch", "bWch", "BarList", "GetPosionIdMaker3")
+    For i = 0 To 3
+        first = True
+        For Each m In grpNames(i)
+            Set c = gcFindCtl(CStr(m))
+            If Not c Is Nothing Then
+                If c.Visible Then
+                    If first Then
+                        minL = c.Left: minT = c.Top: maxR = c.Left + c.Width: maxB = c.Top + c.Height
+                        first = False
+                    Else
+                        If c.Left < minL Then minL = c.Left
+                        If c.Top < minT Then minT = c.Top
+                        If c.Left + c.Width > maxR Then maxR = c.Left + c.Width
+                        If c.Top + c.Height > maxB Then maxB = c.Top + c.Height
+                    End If
                 End If
             End If
-        End If
-    Next c
-    If Not haveCards Then
-        Err.Raise vbObjectError + 1201, "Card Maker", "No visible card controls found in the template frame."
-    End If
-    stageW = cr - cl
-    If stageW < 285 Then stageW = 285
-
-    mf.Width = cl + stageW + padG
-    mf.Left = railW + padG: mf.Top = headH + padG
-    mf.BackColor = &HFFFFFF
-    ' Put image tools beside the data/image-position picker, not below it.
-    toolX = cr + 18
-    toolW = 138
-    toolBottom = gcPlaceImageTools(fb, toolX, ct + 8, toolW)
-    stageW = toolX + toolW - cl
-    mf.Width = cl + stageW + padG
-    y = gcMax(cb, toolBottom) + 14
-    Set qrExp = gcMf.Controls.Add("Forms.Label.1", "gcQrExpand", True)
-    qrExp.Left = cl: qrExp.Top = y: qrExp.Width = stageW: qrExp.Height = 32
-    qrExp.Caption = "   +   QR / Barcode (advanced)"
-    qrExp.ForeColor = GC_NAVY: qrExp.BackColor = &HF1EAE3
-    qrExp.Font.Name = "Segoe UI": qrExp.Font.Size = 9: qrExp.Font.Bold = True
-    y = y + 38
-    gcBuildQrTab cl, y, stageW
-    qrExpanded = False
-    gcFrameH(0) = y + gcQrBlockHeight() + 32
-    For i = 1 To 4
-        gcFrameH(i) = gcFrameH(0)
+        Next m
+        gLeft(i) = minL: gTop(i) = minT: gW(i) = maxR - minL: gH(i) = maxB - minT
+        order(i) = i
     Next i
-    mf.Height = 360
-    On Error Resume Next
-    mf.ScrollBars = 2
-    mf.ScrollHeight = gcFrameH(0)
-    On Error GoTo EH
-    Set fMov = gcFindFrame("Move Object")
-    Set fChg = gcFindFrame("Change Case")
-    Set fGrp = gcFindFrame("Group By Shape No.")
+    For i = 0 To 2                                    ' keep the original top-to-bottom order
+        For j = i + 1 To 3
+            If gTop(order(j)) < gTop(order(i)) Then
+                tmp = order(i): order(i) = order(j): order(j) = tmp
+            End If
+        Next j
+    Next i
+    rowH = 0: grW = 0
+    For i = 0 To 3
+        If gH(i) > rowH Then rowH = gH(i)
+        If gW(i) > grW Then grW = gW(i)
+    Next i
+    If rowH < 24 Then rowH = 24
+
+    '---- sizes of the other blocks --------------------------------------------------------------------
+    If Not fb Is Nothing Then batchW = fb.Width: batchH = fb.Height
+    If Not fBS Is Nothing Then bsW = fBS.Width: bsH = fBS.Height
+    If Not fRS Is Nothing Then rsW = fRS.Width: rsH = fRS.Height
+    Dim grFrW As Single, grFrH As Single
+    If Not fGR Is Nothing Then grFrW = fGR.Width: grFrH = fGR.Height
+    If Not fChg Is Nothing Then chgW = fChg.Width: chgH = fChg.Height
+    If Not fMov Is Nothing Then movW = fMov.Width: movH = fMov.Height
+    If Not fGby Is Nothing Then gbW = fGby.Width: gbH = fGby.Height
+    For Each vn In Array("GrpMinX", "GrpMaxX", "GrpMinY", "GrpMaxY", "GrpGetBoundingBox", "GrpCmdGroupShapes")
+        Set c = gcFindCtl(CStr(vn))
+        If Not c Is Nothing Then
+            If Not haveGrp Then
+                gl = c.Left: gt = c.Top: gr = c.Left + c.Width: gb = c.Top + c.Height
+                haveGrp = True
+            Else
+                If c.Left < gl Then gl = c.Left
+                If c.Top < gt Then gt = c.Top
+                If c.Left + c.Width > gr Then gr = c.Left + c.Width
+                If c.Top + c.Height > gb Then gb = c.Top + c.Height
+            End If
+        End If
+    Next vn
+    If haveGrp Then grpW = gr - gl: grpH = gb - gt
+
+    '=================== CARDS PAGE ===================
+    LW = 120 + grW                                        ' list + one image row
+    RW = 236
+    If batchW > RW Then RW = batchW
+    stageW = LW + 14 + RW
+    qrW = (stageW - 8) / 2
+
+    ' --- row 1: TXT file
+    gcPut "CSV_Select", cl, ct, 76, 26, 0
+    Set fp = gcFindCtl("folderpath")
+    If Not fp Is Nothing Then fp.Left = cl + 82: fp.Top = ct + 2: fp.Width = LW - 82 - 68: fp.Height = 22: gcTab(0).Add fp
+    gcPut "ErrorHandleRefresh", cl + LW - 62, ct, 62, 26, 0
+    ' --- heading + field list
+    y = ct + 36
+    Set lb = gcFindCtl("Label1")
+    If Not lb Is Nothing Then
+        lb.Caption = "Data fields"
+        lb.Left = cl: lb.Top = y: lb.Width = 112: lb.Height = 14
+        lb.Font.Bold = True
+        lb.ForeColor = GC_NAVY
+        lb.WordWrap = False
+        gcTab(0).Add lb
+    End If
+    y = y + 18
+    listH = 4 * rowH + 3 * 8
+    gcPut "ListBox1", cl, y, 112, listH, 0
+    ' --- the four image rows: same pieces, new places
+    For i = 0 To 3
+        k = order(i)
+        For Each m In grpNames(k)
+            Set c = gcFindCtl(CStr(m))
+            If Not c Is Nothing Then
+                c.Left = c.Left + ((cl + 120) - gLeft(k))
+                c.Top = c.Top + ((y + i * (rowH + 8)) - gTop(k))
+                If c.Visible Then gcTab(0).Add c
+            End If
+        Next m
+    Next i
+    leftBottom = y + listH + 10
+    ' --- bottom of the left column
+    gcPut "CreateTextFields", cl, leftBottom, (LW - 8) / 2, 26, 0
+    gcPut "ResetCardMaker", cl + (LW + 8) / 2, leftBottom, (LW - 8) / 2, 26, 0
+    leftBottom = leftBottom + 26
+    Set dl = gcFindCtl("DummyList")
+    If Not dl Is Nothing Then
+        dl.Left = cl: dl.Top = leftBottom + 4: dl.Width = LW: dl.Visible = True
+        gcTab(0).Add dl
+        leftBottom = leftBottom + 4 + dl.Height
+    End If
+
+    ' --- right column: Batch PowerClip, then the three fit buttons
+    x = cl + LW + 14
+    y2 = ct
+    If Not fb Is Nothing Then
+        fb.Left = x: fb.Top = y2
+        gcTab(0).Add fb
+        y2 = y2 + batchH + 10
+    End If
+    Set c = gcNewLbl(0, "gcLblFit", x, y2, RW, 14, "Fill and fit (all pages)")
+    c.Font.Bold = True
+    c.ForeColor = GC_NAVY
+    y2 = y2 + 18
+    gcPut "FitImgtoPCframe", x, y2, (RW - 10) / 3, 28, 0
+    gcPut "Stretch_toFit", x + (RW - 10) / 3 + 5, y2, (RW - 10) / 3, 28, 0
+    gcPut "FitTextToFrame", x + 2 * ((RW - 10) / 3 + 5), y2, (RW - 10) / 3, 28, 0
+    rightBottom = y2 + 28
+
+    cardsH = leftBottom
+    If rightBottom > cardsH Then cardsH = rightBottom
+
+    ' --- QR / Barcode strip: header + two panels
+    gcQrTop = cardsH + 12
+    Set gcQrHdr = gcNewLbl(0, "gcQrHdr", cl, gcQrTop, stageW, 22, "")
+    gcQrHdr.BackColor = GC_RAIL
+    gcQrHdr.BackStyle = 1
+    gcQrHdr.ForeColor = GC_NAVY
+    gcQrHdr.Font.Bold = True
+    gcQrHdr.TextAlign = 1
+    Set qrToggle = gcQrHdr
+    gcSetQrCaption
+    gcBuildSlot 1, cl, gcQrTop + 28, qrW
+    gcBuildSlot 2, cl + qrW + 8, gcQrTop + 28, qrW
+
+    gcCardsH = gcQrTop + 22 + gcPad
+    gcCardsFullH = gcQrTop + 28 + 116 + gcPad
+
+    '=================== ARRANGE PAGE ===================
+    x = cl: y = ct: arrRow1H = 0
+    If Not fBS Is Nothing Then fBS.Left = x: fBS.Top = y: gcTab(2).Add fBS: x = x + bsW + 8: If bsH > arrRow1H Then arrRow1H = bsH
+    If Not fRS Is Nothing Then fRS.Left = x: fRS.Top = y: gcTab(2).Add fRS: x = x + rsW + 8: If rsH > arrRow1H Then arrRow1H = rsH
+    If Not fGR Is Nothing Then fGR.Left = x: fGR.Top = y: gcTab(2).Add fGR: If grFrH > arrRow1H Then arrRow1H = grFrH
+    y = ct + arrRow1H + 12
+    gcPutP "RotateObj", cl, y, 112, 28, 2
+    gcPutP "DeleteDatainEveryPage", cl + 120, y, 112, 28, 2
+    gcPutP "PasteInEachPage", cl + 240, y, 150, 28, 2
+    gcArrFrameH = y + 28 + gcPad
+
+    '=================== window size / frame ===================
+    textH = chgH
+    If gbH > textH Then textH = gbH
+    textH = textH + 8 + grpH
+    gcBaseH = gcCardsH
+    If gcArrFrameH + 6 + movH > gcBaseH Then gcBaseH = gcArrFrameH + 6 + movH
+    If textH > gcBaseH Then gcBaseH = textH
+    formW = gcRailW + gcPad + (cl + stageW + gcPad) + gcPad
+    mf.Width = cl + stageW + gcPad
+    mf.Left = gcRailW + gcPad
+    mf.Top = gcHeaderH + gcPad
+
+    '=================== top-level frames ===================
     If Not fMov Is Nothing Then
-        fMov.Left = mf.Left: fMov.Top = mf.Top + 120
-        gcTab(1).Add fMov
+        fMov.Left = mf.Left: fMov.Top = mf.Top + gcArrFrameH + 6
+        gcTab(2).Add fMov
     End If
     y = mf.Top
-    If Not fChg Is Nothing Then
-        fChg.Left = mf.Left: fChg.Top = y
-        gcTab(2).Add fChg
-        y = y + fChg.Height + 8
+    If Not fChg Is Nothing Then fChg.Left = mf.Left: fChg.Top = y: gcTab(3).Add fChg
+    If Not fGby Is Nothing Then fGby.Left = mf.Left + chgW + 8: fGby.Top = y: gcTab(3).Add fGby
+    y = y + chgH
+    If gbH > chgH Then y = mf.Top + gbH
+    y = y + 8
+    If haveGrp Then
+        For Each vn In Array("GrpMinX", "GrpMaxX", "GrpMinY", "GrpMaxY", "GrpGetBoundingBox", "GrpCmdGroupShapes")
+            Set c = gcFindCtl(CStr(vn))
+            If Not c Is Nothing Then
+                c.Left = c.Left + (mf.Left - gl)
+                c.Top = c.Top + (y - gt)
+                gcTab(3).Add c
+            End If
+        Next vn
     End If
-    If Not fGrp Is Nothing Then
-        fGrp.Left = mf.Left: fGrp.Top = y
-        gcTab(2).Add fGrp
-        y = y + fGrp.Height + 8
-    End If
-    For Each vn In grpNames
+
+    '---- the old standalone QR controls of the designer are not used any more ------------
+    For Each vn In Array("gcCheck", "gcType", "gcColumn", "gcMove", "gcGetPos", "gcX", "gcY", "gcW", "gcH", "gcText")
         Set c = gcFindCtl(CStr(vn))
-        If Not c Is Nothing Then gcTab(2).Add c
+        If Not c Is Nothing Then c.Visible = False
     Next vn
-    formW = railW + padG + mf.Width + padG
-    formH = headH + padG + 360 + footH
+
+    '---- anything else that was visible inside the main frame and is not placed: hide ---
+    For Each c In Me.Controls
+        If gcChildOf(c, mf.Name) Then
+            If c.Visible And Not gcInAnyPage(c.Name) And Not gcIsDyn(c.Name) Then c.Visible = False
+        End If
+    Next c
+
     Me.Width = Me.Width - Me.InsideWidth + formW
-    Me.Height = Me.Height - Me.InsideHeight + formH
-    Me.BackColor = &HF8F7F5
-    gcBuildChrome formW, formH, railW, headH, footH, padG
-    gcRecolor
-    gcStyleControls
-    gcPolishControls
-    gcStyleImageTools
-    gcArrangeToolPanels
-    gcPolishNavigation
-    gcStyleStudio
-    For i = 1 To 2
-        qrForeground(i) = 0
-        qrBackground(i) = &HFFFFFF
-    Next i
+    Me.BackColor = &HF8F5F3
+    gcFormW = formW
+
+    gcBuildChrome formW
+    gcStyleAll
+    gcSkinButtons
     gcInitPanels
-    gcBusy = False: gcUiReady = True
+
+    gcQrOpen = False
+    gcBusy = False
+    gcUiReady = True
     gcShowPage 0
     Exit Sub
 EH:
     gcUiReady = False
-    MsgBox "Unable to build Card Maker interface: " & Err.Description, vbExclamation
+    MsgBox "The new window could not be built (" & Err.Description & ")." & vbCrLf & _
+           "The tools still work; send me a screenshot of this message.", vbExclamation
 End Sub
 
+' places an existing control on the Cards page
+Private Sub gcPut(ByVal nm As String, ByVal l As Single, ByVal t As Single, ByVal w As Single, ByVal h As Single, ByVal pg As Long)
+    Dim c As Object
+    Set c = gcFindCtl(nm)
+    If c Is Nothing Then Exit Sub
+    c.Left = l: c.Top = t: c.Width = w: c.Height = h
+    c.Visible = True
+    gcTab(pg).Add c
+End Sub
+
+' places an existing control on another page (list p)
+Private Sub gcPutP(ByVal nm As String, ByVal l As Single, ByVal t As Single, ByVal w As Single, ByVal h As Single, ByVal pg As Long)
+    gcPut nm, l, t, w, h, pg
+End Sub
+
+Private Function gcInAnyPage(ByVal nm As String) As Boolean
+    Dim p As Long, c As Object
+    gcInAnyPage = False
+    For p = 0 To 3
+        For Each c In gcTab(p)
+            If c.Name = nm Then
+                gcInAnyPage = True
+                Exit Function
+            End If
+        Next c
+    Next p
+End Function
+
+Private Function gcPageOfName(ByVal nm As String) As Long
+    Dim p As Long, c As Object
+    gcPageOfName = -1
+    For p = 0 To 3
+        For Each c In gcTab(p)
+            If c.Name = nm Then
+                gcPageOfName = p
+                Exit Function
+            End If
+        Next c
+    Next p
+End Function
+
+Private Function gcIsDyn(ByVal nm As String) As Boolean
+    gcIsDyn = (Left$(nm, 3) = "gc1" Or Left$(nm, 3) = "gc2" Or Left$(nm, 4) = "gcLb" Or Left$(nm, 4) = "gcBg" Or Left$(nm, 4) = "gcSk" Or Left$(nm, 4) = "gcQr")
+End Function
+
+' a label created inside the main frame (list p)
+Private Function gcNewLbl(ByVal pg As Long, ByVal nm As String, ByVal l As Single, ByVal t As Single, _
+                          ByVal w As Single, ByVal hgt As Single, ByVal cap As String) As Object
+    Dim c As Object
+    Set c = gcMf.Controls.Add("Forms.Label.1", nm, True)
+    c.Left = l: c.Top = t: c.Width = w: c.Height = hgt
+    c.Caption = cap
+    c.BackStyle = 0
+    c.Font.Name = "Tahoma"
+    c.Font.Size = 8
+    gcTab(pg).Add c
+    Set gcNewLbl = c
+End Function
+
 '---------------------------------------------------------------------
-'  header, navigation rail, footer (made by code, outside the main frame)
+'  header, navigation rail, footer
 '---------------------------------------------------------------------
 Private Function gcLbl(ByVal nm As String, ByVal l As Single, ByVal t As Single, ByVal w As Single, _
                        ByVal hgt As Single, ByVal cap As String, ByVal fore As Long, ByVal back As Long, _
@@ -2747,43 +2981,60 @@ Private Function gcLbl(ByVal nm As String, ByVal l As Single, ByVal t As Single,
     Set gcLbl = c
 End Function
 
-Private Sub gcBuildChrome(ByVal formW As Single, ByVal formH As Single, ByVal railW As Single, _
-                          ByVal headerH As Single, ByVal footerH As Single, ByVal padG As Single)
-    Dim c As Object, i As Long, caps As Variant, footTop As Single, tw As Single
+Private Sub gcBuildChrome(ByVal formW As Single)
+    Dim c As Object, i As Long, caps As Variant, tw As Single
 
-    ' header
-    gcLbl "gcHdrBar", 0, 0, formW, headerH, "", GC_NAVY, GC_NAVY, 8, False, 1
-    gcLbl "gcHdrTitle", 16, 11, 140, 24, "CARD MAKER", &HFFFFFF, -1, 14, True, 1
-    gcLbl "gcHdrSub", 158, 18, formW - 158 - 100, 17, "ID PRODUCTION STUDIO", GC_LIGHT, -1, 8, False, 1
-    Set gcChip = gcLbl("gcChip", formW - 82, 14, 66, 20, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
+    gcLbl "gcHdrBar", 0, 0, formW, gcHeaderH, "", GC_NAVY, GC_NAVY, 8, False, 1
+    gcLbl "gcHdrTitle", 12, 9, 100, 20, "Card Maker", &HFFFFFF, -1, 12, True, 1
+    gcLbl "gcHdrSub", 114, 13, formW - 114 - 90, 16, "Printo Cards and Technologies", GC_LIGHT, -1, 8, False, 1
+    Set gcChip = gcLbl("gcChip", formW - 76, 9, 64, 18, "Ready", &HFFFFFF, GC_TEAL, 8, True, 2)
 
-    ' navigation rail
-    gcLbl "gcRail", 0, headerH, railW, formH - headerH - footerH, "", GC_NAVY, GC_RAIL, 8, False, 1
-    caps = Array("01   CARD MAKER", "02   ARRANGE", "03   TEXT & GROUP", "04   MORE TOOLS", "05   ABOUT")
-    For i = 1 To 5
-        Set c = gcLbl("gcNav" & i, 0, headerH + 18 + (i - 1) * 44, railW, 40, vbCr & "   " & caps(i - 1), GC_NAVY, GC_RAIL, 9, False, 1)
+    Set gcRailBg = gcLbl("gcRail", 0, gcHeaderH, gcRailW, 100, "", GC_NAVY, GC_RAIL, 8, False, 1)
+    caps = Array("Cards", "Arrange", "Text / Group")
+    For i = 1 To 3
+        Set c = gcLbl("gcNav" & i, 0, gcHeaderH + 10 + (i - 1) * 34, gcRailW, 32, vbCr & "   " & caps(i - 1), GC_NAVY, GC_RAIL, 9, False, 1)
         Select Case i
             Case 1: Set nv1 = c
             Case 2: Set nv2 = c
             Case 3: Set nv3 = c
-            Case 4: Set nv4 = c
-            Case 5: Set nv5 = c
         End Select
     Next i
 
-    ' footer
-    footTop = formH - footerH
-    gcLbl "gcFtBar", 0, footTop, formW, footerH, "", GC_NAVY, &HFFFFFF, 8, False, 1
-    gcLbl "gcFtLine", 0, footTop, formW, 1, "", GC_NAVY, &HD1C9C2, 8, False, 1
-    Set goBtn = gcLbl("gcGo", padG, footTop + 12, 152, 38, vbCr & "GENERATE CARDS", &HFFFFFF, GC_TEAL, 10, True, 2)
-    tw = formW - padG - 166 - padG
-    Set gcTrack = gcLbl("gcPgTrack", padG + 166, footTop + 19, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
-    Set gcFill = gcLbl("gcPgFill", padG + 156, footTop + 16, 0.5, 8, "", GC_NAVY, GC_TEAL, 8, False, 1)
-    Set gcFtText = gcLbl("gcFtText", padG + 166, footTop + 34, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
+    Set gcFtBar = gcLbl("gcFtBar", 0, 0, formW, gcFooterH, "", GC_NAVY, &HFFFFFF, 8, False, 1)
+    Set gcFtLine = gcLbl("gcFtLine", 0, 0, formW, 1, "", GC_NAVY, &HD1C9C2, 8, False, 1)
+    Set goBtn = gcLbl("gcGo", gcPad, 0, 124, 30, vbCr & "Generate cards", &HFFFFFF, GC_TEAL, 10, True, 2)
+    tw = formW - gcPad - 136 - gcPad
+    Set gcTrack = gcLbl("gcPgTrack", gcPad + 136, 0, tw, 8, "", GC_NAVY, GC_RAIL, 8, False, 1)
+    Set gcFill = gcLbl("gcPgFill", gcPad + 136, 0, 0.5, 8, "", GC_NAVY, GC_TEAL, 8, False, 1)
+    Set gcFtText = gcLbl("gcFtText", gcPad + 136, 0, tw, 16, "Ready", GC_MUTED, -1, 8, False, 1)
 End Sub
 
-' every default-grey frame / label / option button gets the white card colour
-Private Sub gcRecolor()
+' heights depend on the page and on the QR strip: called whenever one of them changes
+Private Sub gcApplySize()
+    Dim contentH As Single, footTop As Single
+    contentH = gcBaseH
+    If gcPage = 0 And gcQrOpen Then
+        If gcCardsFullH > contentH Then contentH = gcCardsFullH
+    End If
+    Select Case gcPage
+        Case 0: gcMf.Height = contentH
+        Case 1: gcMf.Height = gcArrFrameH
+    End Select
+    footTop = gcHeaderH + gcPad + contentH + gcPad
+    gcRailBg.Height = footTop - gcHeaderH
+    gcFtBar.Top = footTop
+    gcFtLine.Top = footTop
+    goBtn.Top = footTop + 9
+    gcTrack.Top = footTop + 14
+    gcFill.Top = footTop + 14
+    gcFtText.Top = footTop + 27
+    Me.Height = Me.Height - Me.InsideHeight + footTop + gcFooterH
+End Sub
+
+'---------------------------------------------------------------------
+'  look: every input flat with a thin border, frames / labels white, buttons skinned
+'---------------------------------------------------------------------
+Private Sub gcStyleAll()
     Dim c As Object, tn As String
     On Error Resume Next
     For Each c In Me.Controls
@@ -2793,7 +3044,177 @@ Private Sub gcRecolor()
                 If c.BackColor = &H8000000F Then c.BackColor = &HFFFFFF
             End If
         End If
+        If tn = "Frame" Then
+            If Left$(c.Name, 2) <> "gc" And c.Name <> gcMf.Name Then
+                c.Font.Bold = True
+                c.ForeColor = GC_NAVY
+            End If
+        End If
+        If tn = "TextBox" Or tn = "ComboBox" Or tn = "ListBox" Then
+            If Left$(c.Name, 2) <> "gc" Then
+                c.SpecialEffect = 0
+                c.BorderStyle = 1
+                c.BorderColor = &HD1C2B8
+            End If
+        End If
     Next c
+End Sub
+
+' flat coloured labels laid over the icon buttons; a click on the label presses the real button
+Private Sub gcSkinButtons()
+    Dim s As String, spec As Variant, e As Variant, parts As Variant
+    Dim b As Object, par As Object, o As Object, i As Long, pg As Long, cap As String
+
+    s = "CSV_Select|Open TXT|T;ErrorHandleRefresh|Refresh|N;ImgMove|>|L;ImgMove1|>|L;ImgMove2|>|L;BarcodeMove|>|L;"
+    s = s & "GetPositnIDMaker1|Pos|L;GetPositnIDMaker2|Pos|L;GetPosionIdMaker3|Pos|L;GetPosionIdMaker4|Pos|L;"
+    s = s & "ResetCardMaker|Reset|N;CreateTextFields|Text fields|N;PasteInEachPage|Paste in all pages|N;"
+    s = s & "Grouping|Group all|N;UngrpAll|Ungroup all|N;FitImgtoPCframe|Fill|T;Stretch_toFit|Stretch|T;FitTextToFrame|Fit text|T;"
+    s = s & "RotateObj|Rotate 180|N;DeleteDatainEveryPage|Delete data|R;GetBitmapNoPC|Pick|L;GetShapeNoPC|Pick|L"
+    spec = Split(s, ";")
+
+    i = 0
+    For Each e In spec
+        parts = Split(CStr(e), "|")
+        Set b = gcFindCtl(CStr(parts(0)))
+        If Not b Is Nothing Then
+            If TypeName(b) = "CommandButton" And b.Visible And i < 24 Then
+                i = i + 1
+                Set par = b.Parent
+                Set o = par.Controls.Add("Forms.Label.1", "gcSk" & i, True)
+                o.Left = b.Left: o.Top = b.Top: o.Width = b.Width: o.Height = b.Height
+                cap = CStr(parts(1))
+                If b.Height >= 22 Then cap = vbCr & cap
+                o.Caption = cap
+                o.TextAlign = 2
+                o.Font.Name = "Tahoma"
+                o.Font.Size = 8
+                o.Font.Bold = True
+                o.BorderStyle = 0
+                o.BackStyle = 1
+                Select Case CStr(parts(2))
+                    Case "T": o.BackColor = GC_TEAL: o.ForeColor = &HFFFFFF
+                    Case "N": o.BackColor = GC_NAVY: o.ForeColor = &HFFFFFF
+                    Case "R": o.BackColor = GC_RED: o.ForeColor = &HFFFFFF
+                    Case Else: o.BackColor = GC_TEAL_LT: o.ForeColor = GC_TEAL
+                End Select
+                On Error Resume Next
+                o.ControlTipText = b.ControlTipText
+                On Error GoTo 0
+                gcSkinTarget(i) = b.Name
+                pg = gcPageOfName(b.Name)
+                If pg >= 0 Then gcTab(pg).Add o
+                gcSkinAssign i, o
+            End If
+        End If
+    Next e
+End Sub
+
+Private Sub gcSkinAssign(ByVal i As Long, ByVal o As Object)
+    Select Case i
+        Case 1: Set sk1 = o
+        Case 2: Set sk2 = o
+        Case 3: Set sk3 = o
+        Case 4: Set sk4 = o
+        Case 5: Set sk5 = o
+        Case 6: Set sk6 = o
+        Case 7: Set sk7 = o
+        Case 8: Set sk8 = o
+        Case 9: Set sk9 = o
+        Case 10: Set sk10 = o
+        Case 11: Set sk11 = o
+        Case 12: Set sk12 = o
+        Case 13: Set sk13 = o
+        Case 14: Set sk14 = o
+        Case 15: Set sk15 = o
+        Case 16: Set sk16 = o
+        Case 17: Set sk17 = o
+        Case 18: Set sk18 = o
+        Case 19: Set sk19 = o
+        Case 20: Set sk20 = o
+        Case 21: Set sk21 = o
+        Case 22: Set sk22 = o
+        Case 23: Set sk23 = o
+        Case 24: Set sk24 = o
+    End Select
+End Sub
+
+Private Sub gcSkinClick(ByVal i As Long)
+    Dim b As Object
+    Set b = gcFindCtl(gcSkinTarget(i))
+    If Not b Is Nothing Then b.Value = True
+End Sub
+
+Private Sub sk1_Click()
+    gcSkinClick 1
+End Sub
+Private Sub sk2_Click()
+    gcSkinClick 2
+End Sub
+Private Sub sk3_Click()
+    gcSkinClick 3
+End Sub
+Private Sub sk4_Click()
+    gcSkinClick 4
+End Sub
+Private Sub sk5_Click()
+    gcSkinClick 5
+End Sub
+Private Sub sk6_Click()
+    gcSkinClick 6
+End Sub
+Private Sub sk7_Click()
+    gcSkinClick 7
+End Sub
+Private Sub sk8_Click()
+    gcSkinClick 8
+End Sub
+Private Sub sk9_Click()
+    gcSkinClick 9
+End Sub
+Private Sub sk10_Click()
+    gcSkinClick 10
+End Sub
+Private Sub sk11_Click()
+    gcSkinClick 11
+End Sub
+Private Sub sk12_Click()
+    gcSkinClick 12
+End Sub
+Private Sub sk13_Click()
+    gcSkinClick 13
+End Sub
+Private Sub sk14_Click()
+    gcSkinClick 14
+End Sub
+Private Sub sk15_Click()
+    gcSkinClick 15
+End Sub
+Private Sub sk16_Click()
+    gcSkinClick 16
+End Sub
+Private Sub sk17_Click()
+    gcSkinClick 17
+End Sub
+Private Sub sk18_Click()
+    gcSkinClick 18
+End Sub
+Private Sub sk19_Click()
+    gcSkinClick 19
+End Sub
+Private Sub sk20_Click()
+    gcSkinClick 20
+End Sub
+Private Sub sk21_Click()
+    gcSkinClick 21
+End Sub
+Private Sub sk22_Click()
+    gcSkinClick 22
+End Sub
+Private Sub sk23_Click()
+    gcSkinClick 23
+End Sub
+Private Sub sk24_Click()
+    gcSkinClick 24
 End Sub
 
 '---------------------------------------------------------------------
@@ -2808,57 +3229,55 @@ End Sub
 Private Sub nv3_Click()
     gcShowPage 2
 End Sub
-Private Sub nv4_Click()
-    gcShowPage 3
-End Sub
-Private Sub nv5_Click()
-    gcShowPage 4
-End Sub
 Private Sub goBtn_Click()
-    If gcBusy Then
-        MsgBox "A batch operation is already running.", vbInformation, "Card Maker"
-        Exit Sub
-    End If
-    If currentPage <> 0 Then
-        gcShowPage 0
-        Exit Sub
-    End If
-    If ActiveDocument Is Nothing Then
-        MsgBox "Open a CorelDRAW document with your ID-card template first.", vbExclamation, "Card Maker"
-        Exit Sub
-    End If
     createCards_Click
+End Sub
+Private Sub qrToggle_Click()
+    gcQrOpen = Not gcQrOpen
+    gcSetQrCaption
+    If gcPage = 0 Then gcShowPage 0
+End Sub
+
+Private Sub gcSetQrCaption()
+    If gcQrOpen Then
+        gcQrHdr.Caption = "  [-]  QR / Barcode on the card     (click to close)"
+    Else
+        gcQrHdr.Caption = "  [+]  QR / Barcode on the card     (click to open)"
+    End If
 End Sub
 
 Private Sub gcShowPage(ByVal idx As Long)
     Dim p As Long, c As Object
-    For p = 0 To 4
-        If p <> idx Then
-            For Each c In gcTab(p)
-                c.Visible = False
-            Next c
-        End If
+    gcPage = idx
+    For p = 0 To 3
+        For Each c In gcTab(p)
+            c.Visible = False
+        Next c
     Next p
+    Select Case idx
+        Case 0
+            For Each c In gcTab(0)
+                c.Visible = True
+            Next c
+            If gcQrOpen Then
+                For Each c In gcTab(1)
+                    c.Visible = True
+                Next c
+            End If
+            gcQrHdr.Visible = True
+        Case 1
+            For Each c In gcTab(2)
+                c.Visible = True
+            Next c
+        Case 2
+            For Each c In gcTab(3)
+                c.Visible = True
+            Next c
+    End Select
     gcMf.Visible = (idx <> 2)
-    gcUpdateToolPanels idx
-    gcMf.Height = 360
-    On Error Resume Next
-    gcMf.ScrollTop = 0
-    On Error GoTo 0
-    For Each c In gcTab(idx)
-        c.Visible = True
-    Next c
-    currentPage = idx
-    If idx = 0 Then
-        gcSyncFields
-        gcSetQrVisible
-    End If
-    qrExp.Visible = (idx = 0)
-    If Not goBtn Is Nothing Then
-        goBtn.Caption = IIf(idx = 0, vbCr & "GENERATE CARDS", vbCr & "GO TO CARD MAKER")
-    End If
-    If idx = 4 Then gcNote "Card Maker - CorelDRAW production tools"
-    For p = 0 To 4
+    gcApplySize
+    If idx = 0 And gcQrOpen Then gcSyncFields
+    For p = 0 To 2
         Set c = gcFindCtl("gcNav" & (p + 1))
         If Not c Is Nothing Then
             If p = idx Then
@@ -2884,19 +3303,14 @@ Private Sub gcSetStatus(ByVal txt As String)
         gcBusy = True
         gcT0 = Timer
         gcChip.Caption = "Working"
-        gcChip.BackColor = &H3C8CE8                  ' orange
+        gcChip.BackColor = &H3C8CE8
     End If
     p = InStr(txt, "Page ")
     q = InStr(txt, " of ")
     If p > 0 And q > p Then
         a = Val(Mid$(txt, p + 5))
         b = Val(Mid$(txt, q + 4))
-        If b > 0 Then
-            a = a / b
-            If a < 0 Then a = 0
-            If a > 1 Then a = 1
-            gcFill.Width = gcTrack.Width * a
-        End If
+        If b > 0 Then gcFill.Width = gcTrack.Width * a / b
     End If
     gcFtText.Caption = txt & "   -   " & Format(Timer - gcT0, "0") & " s"
 End Sub
@@ -2905,7 +3319,6 @@ Private Sub gcIdle()
     If Not gcUiReady Then Exit Sub
     If gcBusy Then gcFtText.Caption = "Finished in " & Format(Timer - gcT0, "0") & " s"
     gcBusy = False
-    If Not gcFill Is Nothing Then gcFill.Width = 0.5
     gcChip.Caption = "Ready"
     gcChip.BackColor = GC_TEAL
 End Sub
@@ -2915,7 +3328,7 @@ Private Sub gcNote(ByVal txt As String)
 End Sub
 
 '---------------------------------------------------------------------
-'  QR / Barcode page (inside the main frame)
+'  QR / Barcode panels (inside the main frame, list 1)
 '---------------------------------------------------------------------
 Private Function gcNewCtl(ByVal progId As String, ByVal nm As String, ByVal l As Single, _
                           ByVal t As Single, ByVal w As Single, ByVal hgt As Single, _
@@ -2926,28 +3339,15 @@ Private Function gcNewCtl(ByVal progId As String, ByVal nm As String, ByVal l As
     If cap <> "" Then c.Caption = cap
     c.Font.Name = "Tahoma"
     c.Font.Size = 8
-    gcTab(0).Add c
-    qrChildren.Add c
+    gcTab(1).Add c
     Set gcNewCtl = c
 End Function
-
-Private Function gcQrBlockHeight() As Single
-    gcQrBlockHeight = 18 + 114 + 8 + 114
-End Function
-
-Private Sub gcBuildQrTab(ByVal ox As Single, ByVal oy As Single, ByVal w As Single)
-    Dim c As Object
-    Set c = gcNewCtl("Forms.Label.1", "gcLblQr", ox, oy, w, 14, "QR / Barcode on the card")
-    c.Font.Bold = True
-    gcBuildSlot 1, ox, oy + 18, w
-    gcBuildSlot 2, ox, oy + 18 + 114 + 8, w
-End Sub
 
 Private Sub gcBuildSlot(ByVal slot As Long, ByVal x As Single, ByVal y As Single, ByVal w As Single)
     Dim p As String, c As Object
     p = "gc" & slot
 
-    gcNewCtl "Forms.Label.1", "gcBg" & slot, x, y, w, 114                        ' coloured panel
+    gcNewCtl "Forms.Label.1", "gcBg" & slot, x, y, w, 116                       ' coloured panel
 
     ' row 0: on/off, type, show text
     Set c = gcNewCtl("Forms.CheckBox.1", p & "Check", x + 4, y + 4, 80, 16, "Generator " & slot)
@@ -2957,36 +3357,48 @@ Private Sub gcBuildSlot(ByVal slot As Long, ByVal x As Single, ByVal y As Single
     gcNewCtl "Forms.CheckBox.1", p & "Text", x + 176, y + 4, w - 180, 16, "Show text"
 
     ' row 1: field list + Add
-    gcNewCtl "Forms.Label.1", "gcLbF" & slot, x + 4, y + 27, 26, 14, "Field"
-    Set c = gcNewCtl("Forms.ComboBox.1", p & "Field", x + 32, y + 24, w - 32 - 4 - 54, 18)
+    gcNewCtl "Forms.Label.1", "gcLbF" & slot, x + 4, y + 29, 26, 14, "Field"
+    Set c = gcNewCtl("Forms.ComboBox.1", p & "Field", x + 32, y + 26, w - 32 - 4 - 54, 18)
     c.Style = 2
-    Set c = gcNewCtl("Forms.CommandButton.1", p & "Add", x + w - 4 - 50, y + 24, 50, 18, "Add")
+    Set c = gcNewCtl("Forms.CommandButton.1", p & "Add", x + w - 4 - 50, y + 26, 50, 18, "Add")
     If slot = 1 Then Set d1Add = c Else Set d2Add = c
 
     ' row 2: content
-    Set c = gcNewCtl("Forms.TextBox.1", p & "Col", x + 4, y + 46, w - 8, 18)
+    Set c = gcNewCtl("Forms.TextBox.1", p & "Col", x + 4, y + 48, w - 8, 18)
     c.ControlTipText = "Fields in <> are replaced for every card. Type your own text or separators too, e.g.  <4 ID No.> | <1 NAME>   (\n = new line)"
 
     ' row 3: position
-    Set c = gcNewCtl("Forms.CommandButton.1", p & "Pos", x + 4, y + 68, 60, 18, "Position")
+    Set c = gcNewCtl("Forms.CommandButton.1", p & "Pos", x + 4, y + 70, 60, 18, "Position")
     If slot = 1 Then Set d1Pos = c Else Set d2Pos = c
-    gcNewCtl "Forms.Label.1", p & "PosLbl", x + 68, y + 71, w - 72, 14, "Position not set"
-    Set c = gcNewCtl("Forms.CommandButton.1", p & "FgBtn", x + 4, y + 91, 92, 19, "Foreground")
-    If slot = 1 Then Set fgBtn1 = c Else Set fgBtn2 = c
-    Set c = gcNewCtl("Forms.CommandButton.1", p & "BgBtn", x + 103, y + 91, 92, 19, "Background")
-    If slot = 1 Then Set bgBtn1 = c Else Set bgBtn2 = c
+    gcNewCtl "Forms.Label.1", p & "PosLbl", x + 68, y + 73, w - 72, 14, "Position not set"
+
+    ' row 4: colours
+    gcNewCtl "Forms.Label.1", "gcLbC" & slot, x + 4, y + 95, 30, 14, "Code"
+    Set c = gcNewCtl("Forms.ComboBox.1", p & "FgC", x + 34, y + 92, 82, 18)
+    c.Style = 2
+    gcNewCtl "Forms.Label.1", "gcLbB" & slot, x + 122, y + 95, 30, 14, "Back"
+    Set c = gcNewCtl("Forms.ComboBox.1", p & "BgC", x + 152, y + 92, w - 152 - 4, 18)
+    c.Style = 2
 End Sub
 
 ' items, colours and labels of the QR panels
 Private Sub gcInitPanels()
-    Dim s As Long, cmb As Object
+    Dim s As Long, cmb As Object, vn As Variant
     For s = 1 To 2
         Set cmb = gcCtl(s, "Type")
-        If cmb.ListCount = 0 Then
-            cmb.AddItem "QR Code"
-            cmb.AddItem "Code 128"
-        End If
-        If cmb.ListIndex < 0 Then cmb.ListIndex = 0
+        cmb.AddItem "QR Code"
+        cmb.AddItem "Code 128"
+        cmb.ListIndex = 0
+        Set cmb = gcCtl(s, "FgC")
+        For Each vn In Array("Black", "Navy", "Dark blue", "Dark green", "Dark red", "Purple", "Dark gray")
+            cmb.AddItem CStr(vn)
+        Next vn
+        cmb.ListIndex = 0
+        Set cmb = gcCtl(s, "BgC")
+        For Each vn In Array("White", "None (transparent)", "Light gray", "Light yellow", "Light blue", "Light green")
+            cmb.AddItem CStr(vn)
+        Next vn
+        cmb.ListIndex = 0
         gcSetPosLabel s
     Next s
     gcApplyColors
@@ -3007,7 +3419,7 @@ Private Sub gcApplyColors()
             c.BorderStyle = 1
             c.BorderColor = accent
         End If
-        For Each vn In Array("gc" & s & "Check", "gc" & s & "Text", "gcLbF" & s, "gc" & s & "PosLbl")
+        For Each vn In Array("gc" & s & "Check", "gc" & s & "Text", "gcLbF" & s, "gcLbC" & s, "gcLbB" & s, "gc" & s & "PosLbl")
             Set c = gcFindCtl(CStr(vn))
             If Not c Is Nothing Then c.BackStyle = 0
         Next vn
@@ -3125,6 +3537,31 @@ End Sub
 
 Private Function gcNum(ByVal v As String) As Boolean
     gcNum = (Len(Trim$(v)) > 0 And IsNumeric(v))
+End Function
+
+'---------------------------------------------------------------------
+'  colours of the generated code (CMYK)
+'---------------------------------------------------------------------
+Private Function gcFgColor(ByVal i As Long) As Color
+    Select Case i
+        Case 2: Set gcFgColor = CreateCMYKColor(100, 90, 20, 40)    ' navy
+        Case 3: Set gcFgColor = CreateCMYKColor(100, 70, 0, 30)     ' dark blue
+        Case 4: Set gcFgColor = CreateCMYKColor(90, 30, 100, 40)    ' dark green
+        Case 5: Set gcFgColor = CreateCMYKColor(20, 100, 100, 45)   ' dark red
+        Case 6: Set gcFgColor = CreateCMYKColor(70, 100, 0, 20)     ' purple
+        Case 7: Set gcFgColor = CreateCMYKColor(0, 0, 0, 80)        ' dark gray
+        Case Else: Set gcFgColor = CreateCMYKColor(0, 0, 0, 100)    ' black
+    End Select
+End Function
+
+Private Function gcBgColor(ByVal i As Long) As Color
+    Select Case i
+        Case 3: Set gcBgColor = CreateCMYKColor(0, 0, 0, 10)        ' light gray
+        Case 4: Set gcBgColor = CreateCMYKColor(0, 0, 25, 0)        ' light yellow
+        Case 5: Set gcBgColor = CreateCMYKColor(15, 5, 0, 0)        ' light blue
+        Case 6: Set gcBgColor = CreateCMYKColor(15, 0, 20, 0)       ' light green
+        Case Else: Set gcBgColor = CreateCMYKColor(0, 0, 0, 0)      ' white
+    End Select
 End Function
 
 ' finds the group made by Generator <slot> on the active page
@@ -3405,7 +3842,7 @@ Private Sub FitImgtoPCframe_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -3611,7 +4048,7 @@ Private Sub GetBitmapNoPC_Click()
             End If
         Next bitmapOrder
     Else
-        MsgBox "Oops! NothingÂ’s selected. Please select a image and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a image and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -3722,7 +4159,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderT
     Else
-        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -3749,7 +4186,7 @@ Private Sub GetShapeNoPC_Click()
             End If
         Next shapeOrder
     Else
-        MsgBox "Oops! NothingÂ’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -3775,7 +4212,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderMFB
     Else
-        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4163,7 +4600,7 @@ Private Sub RotateObj_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -4395,272 +4832,6 @@ Private Function GetShapeTypeName(shapeType As Long) As String
     End Select
 End Function
 
-
-Private Sub gcStyleControls()
-    Dim c As Object, tn As String
-    On Error Resume Next
-    For Each c In Me.Controls
-        tn = TypeName(c)
-        If Left$(c.Name, 2) <> "gc" Then
-            Select Case tn
-                Case "CommandButton"
-                    c.Font.Name = "Segoe UI": c.Font.Size = 9
-                    c.Font.Bold = True
-                    c.BackColor = &HE6ECEF
-                    c.ForeColor = &H34271A
-                    c.TakeFocusOnClick = False
-                Case "TextBox", "ComboBox", "ListBox"
-                    c.Font.Name = "Segoe UI": c.Font.Size = 9
-                    c.BackColor = &HFFFFFF
-                Case "Frame"
-                    c.Font.Name = "Segoe UI": c.Font.Size = 9
-                    c.ForeColor = GC_NAVY
-                    c.BackColor = &HFFFFFF
-                Case "Label"
-                    c.Font.Name = "Segoe UI"
-            End Select
-        End If
-    Next c
-End Sub
-
-' Apply a consistent styling layer without changing existing control names/events.
-Private Sub gcPolishControls()
-    Dim c As Object, tn As String, labelText As String
-    On Error Resume Next
-    For Each c In Me.Controls
-        If Left$(c.Name, 2) <> "gc" Then
-            tn = TypeName(c)
-            Select Case tn
-                Case "CommandButton"
-                    c.Font.Name = "Segoe UI"
-                    c.Font.Size = 9
-                    c.Font.Bold = True
-                    c.ForeColor = &H30251C
-                    c.BackColor = &HF3EEE8
-                    c.TakeFocusOnClick = False
-                    c.ControlTipText = Trim$(c.Caption)
-                    labelText = LCase$(Trim$(c.Caption))
-                    If InStr(labelText, "delete") > 0 Or InStr(labelText, "clear") > 0 Or InStr(labelText, "remove") > 0 Then
-                        c.ForeColor = &HFFFFFF
-                        c.BackColor = &H4242AD
-                    ElseIf InStr(labelText, "generate") > 0 Or InStr(labelText, "create") > 0 Or InStr(labelText, "apply") > 0 Then
-                        c.ForeColor = &HFFFFFF
-                        c.BackColor = &H927527
-                    End If
-                Case "TextBox", "ComboBox", "ListBox"
-                    c.Font.Name = "Segoe UI"
-                    c.Font.Size = 9
-                    c.BackColor = &HFFFFFF
-                    c.ForeColor = &H30251C
-                Case "CheckBox", "OptionButton"
-                    c.Font.Name = "Segoe UI"
-                    c.Font.Size = 9
-                    c.ForeColor = &H30251C
-                Case "Frame"
-                    c.Font.Name = "Segoe UI"
-                    c.Font.Size = 9
-                    c.Font.Bold = True
-                    c.ForeColor = &H30251C
-                    c.BackColor = &HFFFFFF
-            End Select
-        End If
-    Next c
-    On Error GoTo 0
-End Sub
-
-' Keep tool frames within the workspace and preserve their original events.
-Private Sub gcArrangeToolPanels()
-    Dim c As Object, t As Single, workL As Single, workW As Single
-    Dim names As Variant, v As Variant
-    On Error Resume Next
-    workL = gcMf.Left
-    workW = gcMf.Width
-    t = gcMf.Top
-    names = Array("Move Object", "Change Case", "Group By Shape No.")
-    For Each v In names
-        Set c = gcFindFrame(CStr(v))
-        If Not c Is Nothing Then
-            c.Left = workL
-            If c.Width > workW Then c.Width = workW
-            If CStr(v) = "Move Object" Then
-                c.Top = gcMf.Top + 16
-            Else
-                c.Top = t
-                t = t + c.Height + 10
-            End If
-        End If
-    Next v
-    On Error GoTo 0
-End Sub
-
-' Tool sections are shown by tab; no controls are deleted or renamed.
-Private Sub gcUpdateToolPanels(ByVal tabIndex As Long)
-    Dim c As Object
-    On Error Resume Next
-    Set c = gcFindFrame("Move Object")
-    If Not c Is Nothing Then c.Visible = (tabIndex = 1)
-    Set c = gcFindFrame("Change Case")
-    If Not c Is Nothing Then c.Visible = (tabIndex = 2)
-    Set c = gcFindFrame("Group By Shape No.")
-    If Not c Is Nothing Then c.Visible = (tabIndex = 2)
-    On Error GoTo 0
-End Sub
-
-' Image tools are a compact vertical toolbar beside the image picker.
-Private Function gcPlaceImageTools(ByVal powerClip As Object, ByVal x As Single, ByVal topY As Single, ByVal w As Single) As Single
-    Dim c As Object, i As Long, names As Variant, caps As Variant, nextY As Single
-    names = Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
-    caps = Array("FIT IMAGE", "STRETCH IMAGE", "FIT TEXT")
-    nextY = topY + 24
-    If Not powerClip Is Nothing Then
-        powerClip.Left = x
-        powerClip.Top = nextY
-        powerClip.Width = w
-        nextY = nextY + powerClip.Height + 8
-    End If
-    Set c = gcNewImageHeading(x, topY, w)
-    For i = 0 To 2
-        Set c = gcFindCtl(CStr(names(i)))
-        If Not c Is Nothing Then
-            c.Left = x
-            c.Top = nextY + i * 35
-            c.Width = w
-            c.Height = 29
-            On Error Resume Next
-            c.Caption = CStr(caps(i))
-            On Error GoTo 0
-        End If
-    Next i
-    gcPlaceImageTools = nextY + 3 * 35 + 6
-End Function
-
-Private Function gcNewImageHeading(ByVal x As Single, ByVal y As Single, ByVal w As Single) As Object
-    Dim c As Object
-    Set c = gcMf.Controls.Add("Forms.Label.1", "gcImageToolsTitle", True)
-    c.Left = x: c.Top = y: c.Width = w: c.Height = 18
-    c.Caption = "IMAGE TOOLS"
-    c.Font.Name = "Segoe UI": c.Font.Size = 9: c.Font.Bold = True
-    c.ForeColor = GC_NAVY: c.BackStyle = 0
-    gcTab(0).Add c
-    Set gcNewImageHeading = c
-End Function
-
-Private Sub gcStyleImageTools()
-    Dim c As Object, v As Variant
-    On Error Resume Next
-    For Each v In Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
-        Set c = gcFindCtl(CStr(v))
-        If Not c Is Nothing Then
-            c.Font.Name = "Segoe UI"
-            c.Font.Size = 9
-            c.Font.Bold = True
-            c.BackColor = &HECE5DC
-            c.ForeColor = GC_NAVY
-            c.ControlTipText = "Image and text production tool"
-        End If
-    Next v
-    On Error GoTo 0
-End Sub
-
-Private Sub gcPolishNavigation()
-    Dim c As Object, i As Long
-    On Error Resume Next
-    Me.Caption = "Card Maker | ID Production Studio"
-    For i = 1 To 5
-        Set c = gcFindCtl("gcNav" & i)
-        If Not c Is Nothing Then
-            c.Font.Name = "Segoe UI"
-            c.Font.Size = 9
-            c.ControlTipText = "Open " & Trim$(c.Caption)
-        End If
-    Next i
-    Set c = gcFindCtl("gcGo")
-    If Not c Is Nothing Then c.ControlTipText = "Generate ID cards from the active template"
-    On Error GoTo 0
-End Sub
-
-' Presentation-only finishing pass; no changes to generation handlers.
-Private Sub gcStyleStudio()
-    Dim c As Object, v As Variant
-    On Error Resume Next
-    For Each v In Array("gcHdrBar", "gcRail")
-        Set c = gcFindCtl(CStr(v))
-        If Not c Is Nothing Then c.BackColor = &H30251C
-    Next v
-    Set c = gcFindCtl("gcGo")
-    If Not c Is Nothing Then
-        c.BackColor = &H927527
-        c.ForeColor = &HFFFFFF
-        c.Font.Name = "Segoe UI"
-        c.Font.Bold = True
-    End If
-    Set c = gcFindCtl("gcImageToolsTitle")
-    If Not c Is Nothing Then
-        c.Font.Size = 10
-        c.ForeColor = &H30251C
-    End If
-    For Each v In Array("FitImgtoPCframe", "Stretch_toFit", "FitTextToFrame")
-        Set c = gcFindCtl(CStr(v))
-        If Not c Is Nothing Then
-            c.BackColor = &HF4EFE9
-            c.ForeColor = &H30251C
-            c.Font.Size = 9
-            c.Font.Bold = True
-        End If
-    Next v
-    On Error GoTo 0
-End Sub
-
-Private Sub gcSetQrVisible()
-    Dim c As Object
-    If qrChildren Is Nothing Then Exit Sub
-    For Each c In qrChildren
-        c.Visible = (currentPage = 0 And qrExpanded)
-    Next c
-    qrExp.Caption = IIf(qrExpanded, "   -   QR / Barcode (hide settings)", "   +   QR / Barcode (advanced)")
-End Sub
-
-Private Sub qrExp_Click()
-    qrExpanded = Not qrExpanded
-    gcSetQrVisible
-End Sub
-
-Private Sub gcChooseColor(ByVal slot As Long, ByVal foreground As Boolean)
-    Dim result As String, col As Long
-    result = InputBox("Enter a six-digit RGB hexadecimal colour, e.g. 003366 or FFFFFF.", "QR / Barcode colour", _
-                      IIf(foreground, gcHexColor(qrForeground(slot)), gcHexColor(qrBackground(slot))))
-    If Len(result) = 0 Then Exit Sub
-    result = Replace(Replace(Trim$(result), "#", ""), " ", "")
-    If Len(result) <> 6 Or result Like "*[!0-9A-Fa-f]*" Then
-        MsgBox "Please enter six hexadecimal digits (RRGGBB).", vbExclamation
-        Exit Sub
-    End If
-    col = CLng("&H" & Mid$(result, 5, 2)) * 65536 + CLng("&H" & Mid$(result, 3, 2)) * 256 + CLng("&H" & Left$(result, 2))
-    If foreground Then
-        qrForeground(slot) = col
-    Else
-        qrBackground(slot) = col
-    End If
-    gcCtl(slot, IIf(foreground, "FgBtn", "BgBtn")).BackColor = col
-End Sub
-
-Private Function gcHexColor(ByVal col As Long) As String
-    gcHexColor = Right$("0" & Hex$(col And 255), 2) & Right$("0" & Hex$((col \ 256) And 255), 2) & Right$("0" & Hex$((col \ 65536) And 255), 2)
-End Function
-
-Private Sub fgBtn1_Click()
-    gcChooseColor 1, True
-End Sub
-Private Sub bgBtn1_Click()
-    gcChooseColor 1, False
-End Sub
-Private Sub fgBtn2_Click()
-    gcChooseColor 2, True
-End Sub
-Private Sub bgBtn2_Click()
-    gcChooseColor 2, False
-End Sub
-
 Private Sub UserForm_Initialize()
     ' Initialize variables
     Set SelectedShapeIndices = New Collection
@@ -4671,6 +4842,6 @@ Private Sub UserForm_Initialize()
     Me.GrpMinY.value = ""
     Me.GrpMaxY.value = ""
     ' Initialize status label
+    gcSetStatus "Ready"
     gcBuildUi
-    gcNote "Ready - select your Excel data and template"
 End Sub
