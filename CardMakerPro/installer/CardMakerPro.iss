@@ -27,24 +27,57 @@ Source: "INSTALLATION.md"; DestDir: "{app}\Developer"; Flags: ignoreversion
 [Icons]
 Name: "{group}\Uninstall Card Maker Pro Preview"; Filename: "{uninstallexe}"
 [Code]
-function IsCorelDrawInstalled: Boolean;
 var
-  Names: TArrayOfString;
-  I: Integer;
+  SelectedAddonDir: string;
+
+function FindAddonDirIn(const Root: string): string;
+var
+  FindRec: TFindRec;
+  Base, Candidate: string;
 begin
-  Result := False;
-  { Only warn; CorelDRAW can be installed later or in nonstandard directories. }
-  if RegGetSubkeyNames(HKLM, 'SOFTWARE\Corel', Names) then
-    for I := 0 to GetArrayLength(Names)-1 do
-      if Pos('CorelDRAW', Names[I]) > 0 then Result := True;
-  if RegGetSubkeyNames(HKLM32, 'SOFTWARE\Corel', Names) then
-    for I := 0 to GetArrayLength(Names)-1 do
-      if Pos('CorelDRAW', Names[I]) > 0 then Result := True;
+  Result := '';
+  Base := AddBackslash(Root) + 'Corel';
+  if not DirExists(Base) then Exit;
+  if FindFirst(AddBackslash(Base) + '*', FindRec) then begin
+    try
+      repeat
+        if (FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0) and
+           (FindRec.Name <> '.') and (FindRec.Name <> '..') and
+           (Pos('CorelDRAW Graphics Suite', FindRec.Name) = 1) then begin
+          Candidate := AddBackslash(Base) + FindRec.Name + '\\Programs64';
+          if FileExists(AddBackslash(Candidate) + 'CorelDRW.exe') then begin
+            Result := AddBackslash(Candidate) + 'Addons\\CardMakerPro';
+            Exit;
+          end;
+          Candidate := AddBackslash(Base) + FindRec.Name + '\\Programs';
+          if FileExists(AddBackslash(Candidate) + 'CorelDRW.exe') then begin
+            Result := AddBackslash(Candidate) + 'Addons\\CardMakerPro';
+            Exit;
+          end;
+        end;
+      until not FindNext(FindRec);
+    finally
+      FindClose(FindRec);
+    end;
+  end;
+end;
+
+function GetAddonDir(Param: string): string;
+begin
+  Result := SelectedAddonDir;
+end;
+
+function HasCorelAddonDir: Boolean;
+begin
+  Result := SelectedAddonDir <> '';
 end;
 
 function InitializeSetup: Boolean;
 begin
-  Result := True;
-  if not IsCorelDrawInstalled then
-    MsgBox('CorelDRAW installation was not detected automatically. This preview only copies development DLLs and does not install a working docker.', mbInformation, MB_OK);
+  SelectedAddonDir := FindAddonDirIn(ExpandConstant('{pf}'));
+  if SelectedAddonDir = '' then
+    SelectedAddonDir := FindAddonDirIn(ExpandConstant('{pf32}'));
+  Result := SelectedAddonDir <> '';
+  if not Result then
+    MsgBox('CorelDRAW was not found in standard installation folders. Setup stopped without changing CorelDRAW. This preview installer supports only a detected standard installation.', mbCriticalError, MB_OK);
 end;
