@@ -1,0 +1,11 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <PropertyGroup>
+  <OutputType>Library</OutputType>
+  <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+  <AssemblyName>CardMakerPro.Contracts</AssemblyName>
+  <RootNamespace>CardMakerPro.Contracts</RootNamespace>
+  <ProjectGuid>{4E32E5B7-B6C8-49E3-94ED-7BC73511A8E4}</ProjectGuid>
+ </PropertyGroup>
+ <ItemGroup><Reference Include="System"/><Compile Include="IHostAdapter.cs"/></ItemGroup>
+ <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>
