@@ -17,6 +17,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x86 x64
 UninstallDisplayIcon={app}\CardMakerPro.Host.dll
 WizardStyle=modern
+MinVersion=6.1
 DisableProgramGroupPage=yes
 [Files]
 Source: "staging\CardMakerPro.Host.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -24,6 +25,11 @@ Source: "staging\CardMakerPro.UI.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "CorelDockerBootstrap.bas"; DestDir: "{app}\Developer"; Flags: ignoreversion
 Source: "TEST_DOCKER.md"; DestDir: "{app}\Developer"; Flags: ignoreversion
 Source: "INSTALLATION.md"; DestDir: "{app}\Developer"; Flags: ignoreversion
+Source: "..\\addon\\AppUI.xslt"; DestDir: "{code:GetAddonDir}"; Flags: ignoreversion; Check: HasCorelAddonDir
+Source: "..\\addon\\UserUI.xslt"; DestDir: "{code:GetAddonDir}"; Flags: ignoreversion; Check: HasCorelAddonDir
+Source: "..\\addon\\CorelDrw.addon"; DestDir: "{code:GetAddonDir}"; Flags: ignoreversion; Check: HasCorelAddonDir
+Source: "staging\\CardMakerPro.UI.dll"; DestDir: "{code:GetAddonDir}"; Flags: ignoreversion; Check: HasCorelAddonDir
+Source: "staging\\CardMakerPro.Host.dll"; DestDir: "{code:GetAddonDir}"; Flags: ignoreversion; Check: HasCorelAddonDir
 [Icons]
 Name: "{group}\Uninstall Card Maker Pro Preview"; Filename: "{uninstallexe}"
 [Code]
@@ -44,12 +50,12 @@ begin
         if (FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0) and
            (FindRec.Name <> '.') and (FindRec.Name <> '..') and
            (Pos('CorelDRAW Graphics Suite', FindRec.Name) = 1) then begin
-          Candidate := AddBackslash(Base) + FindRec.Name + '\\Programs64';
+          Candidate := AddBackslash(Base) + FindRec.Name + '\Programs64';
           if FileExists(AddBackslash(Candidate) + 'CorelDRW.exe') then begin
-            Result := AddBackslash(Candidate) + 'Addons\\CardMakerPro';
+            Result := AddBackslash(Candidate) + 'Addons\CardMakerPro';
             Exit;
           end;
-          Candidate := AddBackslash(Base) + FindRec.Name + '\\Programs';
+          Candidate := AddBackslash(Base) + FindRec.Name + '\Programs';
           if FileExists(AddBackslash(Candidate) + 'CorelDRW.exe') then begin
             Result := AddBackslash(Candidate) + 'Addons\\CardMakerPro';
             Exit;
