@@ -31,7 +31,7 @@ jobs:
       - name: Install Inno Setup compiler
         shell: pwsh
         run: |
-          choco install innosetup --version=6.2.2 -y --no-progress
+          choco install innosetup --version=6.2.2 --allow-downgrade -y --no-progress
           if ($LASTEXITCODE -ne 0) { throw "Chocolatey could not install Inno Setup 6.2.2" }
           $compiler = "${env:ProgramFiles(x86)}\\Inno Setup 6\\ISCC.exe"
           if (-not (Test-Path $compiler)) { throw "Inno Setup compiler not found: $compiler" }
