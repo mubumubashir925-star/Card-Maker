@@ -13,7 +13,9 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System.Xaml" />
+    <Reference Include="System.Web.Extensions" />
     <Page Include="Workspace.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Compile Include="ReleaseChecker.cs"/>
     <Compile Include="Workspace.xaml.cs"><DependentUpon>Workspace.xaml</DependentUpon></Compile>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
