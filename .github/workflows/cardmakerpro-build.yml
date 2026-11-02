@@ -30,7 +30,13 @@ jobs:
           Copy-Item "CardMakerPro/src/CardMakerPro.UI/bin/Release/CardMakerPro.UI.dll" $stage
       - name: Install Inno Setup compiler
         shell: pwsh
-        run: choco install innosetup -y --no-progress
+        run: |
+          $url = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
+          $file = Join-Path $env:RUNNER_TEMP "innosetup-6.2.2.exe"
+          Invoke-WebRequest -Uri $url -OutFile $file
+          Start-Process -FilePath $file -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          $compiler = "${env:ProgramFiles(x86)}\\Inno Setup 6\\ISCC.exe"
+          if (-not (Test-Path $compiler)) { throw "Inno Setup 6.2.2 compiler not found" }
       - name: Build preview setup EXE
         shell: pwsh
         run: |
