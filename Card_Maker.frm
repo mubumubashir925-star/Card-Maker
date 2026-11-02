@@ -804,7 +804,7 @@ Private Sub DeleteDatainEveryPage_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -1228,7 +1228,7 @@ Private Sub Stretch_toFit_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -2637,7 +2637,7 @@ Private Sub gcBuildUi()
 
     On Error GoTo EH
     gcUiReady = False
-    gcPad = 8: gcRailW = 96: gcHeaderH = 36: gcFooterH = 48
+    gcPad = 8: gcRailW = 80: gcHeaderH = 36: gcFooterH = 48
     cl = 10: ct = 10
 
     Set mf = gcFindFrame("Card Maker")
@@ -3842,7 +3842,7 @@ Private Sub FitImgtoPCframe_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a powerclip frame and try again", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
@@ -4048,7 +4048,7 @@ Private Sub GetBitmapNoPC_Click()
             End If
         Next bitmapOrder
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a image and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a image and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4159,7 +4159,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderT
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4186,7 +4186,7 @@ Private Sub GetShapeNoPC_Click()
             End If
         Next shapeOrder
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a shape as frame and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4212,7 +4212,7 @@ Dim selectedShape As Shape
             End If
         Next shapeOrderMFB
     Else
-        MsgBox "Oops! Nothing’s selected. Please select a object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select a object and try again.", vbExclamation, "No Selection"
     End If
 End Sub
 
@@ -4600,7 +4600,7 @@ Private Sub RotateObj_Click()
     
     ' Check if any shape is selected
     If activeSelection.Shapes.Count = 0 Then
-        MsgBox "Oops! Nothing’s selected. Please select an object and try again.", vbExclamation, "No Selection"
+        MsgBox "Oops! NothingÂ’s selected. Please select an object and try again.", vbExclamation, "No Selection"
         GoTo Cleanup
     End If
     
