@@ -3089,7 +3089,7 @@ End Sub
 ' flat coloured labels laid over the icon buttons; a click on the label presses the real button
 Private Sub gcSkinButtons()
     Dim s As String, spec As Variant, e As Variant, parts As Variant
-    Dim b As Object, par As Object, o As Object, i As Long, pg As Long, cap As String
+    Dim b As Object, par As Object, o As Object, i As Long, pg As Long, cap As String, iconFile As String, iconRoot As String
 
     s = "CSV_Select|Open TXT|T;ErrorHandleRefresh|Refresh|N;ImgMove|>|L;ImgMove1|>|L;ImgMove2|>|L;BarcodeMove|>|L;"
     s = s & "GetPositnIDMaker1|Pos|L;GetPositnIDMaker2|Pos|L;GetPosionIdMaker3|Pos|L;GetPosionIdMaker4|Pos|L;"
@@ -3126,6 +3126,32 @@ Private Sub gcSkinButtons()
                 o.Font.Size = 8
                 o.Font.Bold = True
                 o.WordWrap = False
+                ' Optional bitmap icons; fall back to readable text if absent.
+                iconRoot = Environ$("USERPROFILE") & "\\Documents\\CardMakerIcons\\"
+                iconFile = ""
+                Select Case b.Name
+                    Case "CSV_Select": iconFile = "folder.bmp"
+                    Case "ErrorHandleRefresh": iconFile = "refresh.bmp"
+                    Case "CreateTextFields": iconFile = "fields.bmp"
+                    Case "ResetCardMaker": iconFile = "reset.bmp"
+                    Case "PasteInEachPage": iconFile = "paste.bmp"
+                    Case "GetBitmapNoPC": iconFile = "image.bmp"
+                    Case "GetShapeNoPC": iconFile = "frame.bmp"
+                End Select
+                If Len(iconFile) > 0 Then
+                    If Len(Dir$(iconRoot & iconFile)) > 0 Then
+                        On Error Resume Next
+                        Set o.Picture = LoadPicture(iconRoot & iconFile)
+                        If Err.Number = 0 Then
+                            o.PicturePosition = 0 ' fmPicturePositionLeftTop
+                            If b.Name = "ErrorHandleRefresh" Or b.Name = "ResetCardMaker" Or b.Name = "GetBitmapNoPC" Or b.Name = "GetShapeNoPC" Then
+                                o.Caption = ""
+                            End If
+                        End If
+                        Err.Clear
+                        On Error GoTo 0
+                    End If
+                End If
                 o.SpecialEffect = 0
                 o.BorderStyle = 0
                 o.BackStyle = 1
