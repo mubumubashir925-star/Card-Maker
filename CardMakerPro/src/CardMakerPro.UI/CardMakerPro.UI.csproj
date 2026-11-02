@@ -5,7 +5,12 @@
     <AssemblyName>CardMakerPro.UI</AssemblyName>
     <RootNamespace>CardMakerPro.UI</RootNamespace>
     <ProjectGuid>{B1CCB63D-DA63-4C17-B42A-82107B3D12A1}</ProjectGuid>
-  </PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+  <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+  <OutputPath>bin\$(Configuration)\</OutputPath>
+  <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+  <LangVersion>6</LangVersion>
+ </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
