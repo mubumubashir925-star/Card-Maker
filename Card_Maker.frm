@@ -3109,23 +3109,23 @@ Private Sub gcSkinButtons()
                 Set o = par.Controls.Add("Forms.Label.1", "gcSk" & i, True)
                 o.Left = b.Left: o.Top = b.Top: o.Width = b.Width: o.Height = b.Height
                 cap = CStr(parts(1))
-                ' Compact, high-contrast vector-like symbol buttons.
-                ' Use Windows 7 compatible Unicode glyphs; no external assets.
+                ' Reliable Windows 7 text labels; no tiny/missing Unicode glyphs.
+                ' Reserve compact icon-only controls for future bitmap assets.
                 Select Case b.Name
-                    Case "CSV_Select": cap = ChrW(&H25A3) & "  Open TXT"
-                    Case "ErrorHandleRefresh": cap = ChrW(&H21BB)
-                    Case "CreateTextFields": cap = ChrW(&H229E) & "  Text fields"
-                    Case "ResetCardMaker": cap = ChrW(&H21BA)
-                    Case "PasteInEachPage": cap = ChrW(&H2398) & "  Paste all"
-                    Case "GetBitmapNoPC": cap = ChrW(&H25A3)
-                    Case "GetShapeNoPC": cap = ChrW(&H25A1)
+                    Case "CSV_Select": cap = "OPEN TXT"
+                    Case "ErrorHandleRefresh": cap = "REFRESH"
+                    Case "CreateTextFields": cap = "TEXT FIELDS"
+                    Case "ResetCardMaker": cap = "RESET"
+                    Case "PasteInEachPage": cap = "PASTE ALL"
+                    Case "GetBitmapNoPC": cap = "IMG"
+                    Case "GetShapeNoPC": cap = "FRAME"
                 End Select
-                If b.Height >= 22 And b.Name <> "ErrorHandleRefresh" And b.Name <> "ResetCardMaker" And b.Name <> "GetBitmapNoPC" And b.Name <> "GetShapeNoPC" Then cap = vbCr & cap
                 o.Caption = cap
                 o.TextAlign = 2
-                o.Font.Name = "Segoe UI Symbol"
-                o.Font.Size = 10
+                o.Font.Name = "Tahoma"
+                o.Font.Size = 8
                 o.Font.Bold = True
+                o.WordWrap = False
                 o.BorderStyle = 0
                 o.BackStyle = 1
                 Select Case CStr(parts(2))
