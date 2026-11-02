@@ -1,0 +1,25 @@
+name: Card Maker Pro - Build DLLs
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'CardMakerPro/**'
+      - '.github/workflows/cardmakerpro-build.yml'
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Build WPF host
+        shell: pwsh
+        run: msbuild CardMakerPro/CardMakerPro.sln /p:Configuration=Release /p:Platform="Any CPU" /v:minimal
+      - name: Upload DLL artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CardMakerPro-Host-Libraries
+          path: |
+            CardMakerPro/src/CardMakerPro.Host/bin/Release/**
+            CardMakerPro/src/CardMakerPro.UI/bin/Release/**
+          if-no-files-found: error
